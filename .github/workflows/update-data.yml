@@ -1,0 +1,32 @@
+name: Atualizar dados de ataques (DShield)
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Buscar dados no DShield
+        env:
+          DSHIELD_CONTACT: ${{ vars.DSHIELD_CONTACT || github.repository }}
+        run: node scripts/fetch-dshield.mjs
+
+      - name: Commitar data/attacks.json se houve mudanca
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/attacks.json
+          git diff --cached --quiet || git commit -m "chore: atualiza dados de ataques (DShield)"
+          git push
