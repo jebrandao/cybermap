@@ -1,0 +1,374 @@
+:root {
+  --bg: #05070d;
+  --panel-bg: #0b1020;
+  --border: #1c2440;
+  --text: #d7deee;
+  --text-dim: #7c88a6;
+  --accent: #33e0ff;
+  --accent-2: #ff3366;
+  --land: #131a30;
+  --land-stroke: #232d4f;
+  --senai-dark: #393230;
+  --senai-blue: #83c7e5;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI", Roboto, system-ui, sans-serif;
+}
+
+#app {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  grid-template-columns: 280px 1fr 320px;
+  grid-template-areas:
+    "top top top"
+    "left map right";
+  height: 100vh;
+}
+
+#topbar {
+  grid-area: top;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 24px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, #0a0f1e, transparent);
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.logo-badge {
+  display: inline-flex;
+  align-items: center;
+  background: #fff;
+  border-radius: 6px;
+  padding: 6px 10px;
+  line-height: 0;
+}
+#senai-logo { display: block; height: 24px; width: auto; }
+
+.topbar-title { display: flex; flex-direction: column; min-width: 0; }
+
+#topbar h1 {
+  margin: 0;
+  font-size: 20px;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  color: var(--senai-blue);
+}
+#topbar h1 span { color: var(--senai-blue); }
+
+#updated-at {
+  font-size: 12px;
+  color: var(--text-dim);
+  overflow-wrap: break-word;
+}
+
+.topbar-right {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  flex: none;
+  white-space: nowrap;
+  margin-left: 14px;
+}
+#brand-digitech {
+  color: var(--senai-blue);
+  text-shadow: 0 0 12px rgba(131, 199, 229, 0.35);
+}
+
+#map-wrap {
+  grid-area: map;
+  position: relative;
+  overflow: hidden;
+}
+
+#map { width: 100%; height: 100%; display: block; }
+
+.land { fill: var(--land); stroke: var(--land-stroke); stroke-width: 0.5; }
+
+.arc {
+  fill: none;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+}
+
+.pulse {
+  opacity: 0;
+}
+
+.travel-dot {
+  filter: drop-shadow(0 0 3px currentColor);
+}
+
+.source-dot {
+  fill: var(--accent);
+}
+
+.hub {
+  fill: none;
+  stroke: var(--text-dim);
+  stroke-width: 1;
+  opacity: 0.35;
+}
+
+#map-legend {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: 0;
+  padding: 8px 16px;
+  list-style: none;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 18px;
+  background: linear-gradient(0deg, rgba(5, 7, 13, 0.92), rgba(5, 7, 13, 0.55) 80%, transparent);
+  font-size: 11px;
+  color: var(--text-dim);
+  pointer-events: none;
+}
+
+.legend-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+#tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: rgba(10, 14, 28, 0.95);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  transform: translate(-50%, -120%);
+}
+#tooltip.hidden { display: none; }
+
+#panel-left, #panel-right {
+  background: var(--panel-bg);
+}
+#panel-left { grid-area: left; border-right: 1px solid var(--border); }
+#panel-right { grid-area: right; border-left: 1px solid var(--border); overflow-y: auto; padding: 18px; }
+
+/* Painel esquerdo: eventos (60%) e ranking de paises (40%) visiveis ao
+   mesmo tempo, cada um com rolagem propria dentro da sua fatia. */
+#panel-left {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+#panel-left section {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 18px;
+}
+#panel-left section:nth-of-type(1) { flex: 0 0 60%; }
+#panel-left section:nth-of-type(2) {
+  flex: 0 0 40%;
+  border-top: 1px solid var(--border);
+}
+
+#panel-left h2, #panel-right h2 {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  margin: 0 0 8px;
+  flex: none;
+}
+#panel-right section:first-child h2 { margin-top: 0; }
+
+#event-list, #port-list, #cve-list, #country-ranking {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 13px;
+}
+
+#event-list, #country-ranking {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+#port-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+#country-ranking {
+  counter-reset: rank;
+}
+
+#country-ranking li {
+  counter-increment: rank;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+#country-ranking li::before {
+  content: counter(rank) ".";
+  color: var(--text-dim);
+  font-weight: 700;
+  width: 18px;
+  flex: none;
+}
+
+.rank-flag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.rank-country { font-weight: 600; }
+
+#country-ranking .count { color: var(--text-dim); }
+
+#event-list li {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.event-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.attack-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.attack-type {
+  font-weight: 600;
+  font-size: 12.5px;
+  flex: 1;
+}
+
+.flag {
+  width: 18px;
+  height: 13px;
+  flex: none;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.flag-empty {
+  background: var(--border);
+  box-shadow: none;
+}
+
+#tooltip .attack-line { margin-bottom: 4px; }
+
+.event-meta {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.event-meta .country { color: var(--text); font-weight: 600; }
+
+#port-list .count { color: var(--text-dim); }
+
+#cve-list li {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.cve-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cve-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.cve-id {
+  font-weight: 600;
+  font-size: 12.5px;
+}
+.cve-id a { color: inherit; text-decoration: none; }
+.cve-id a:hover { text-decoration: underline; }
+
+.cve-severity {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.cve-summary {
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+
+#about p {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+#about a { color: var(--accent); }
+
+@media (max-width: 1100px) {
+  #app {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr auto auto;
+    grid-template-areas:
+      "top"
+      "map"
+      "left"
+      "right";
+  }
+  #panel-left, #panel-right {
+    border: none;
+    border-top: 1px solid var(--border);
+    max-height: 40vh;
+  }
+}
+
+@media (max-width: 480px) {
+  #topbar { padding: 10px 12px; }
+  #topbar h1 { font-size: 16px; }
+  .topbar-right { font-size: 16px; margin-left: 8px; }
+  .logo-badge { padding: 4px 7px; }
+  #senai-logo { height: 18px; }
+  #updated-at { font-size: 10px; }
+}
