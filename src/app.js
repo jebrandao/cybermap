@@ -14,6 +14,16 @@
     return countryNames[code] || code;
   }
 
+  // Estado da visualizacao 3D (globe.gl), carregada e inicializada so
+  // quando o usuario troca pra 3D pela primeira vez.
+  let viewMode = "2d";
+  let worldFeatures = null;
+  let liveData = null;
+  let globeInstance = null;
+  let globeLibsLoaded = false;
+  let globeArcs = [];
+  let globeRings = [];
+
   const WIDTH = 960;
   const HEIGHT = 520;
   svg.attr("viewBox", `0 0 ${WIDTH} ${HEIGHT}`);
@@ -69,10 +79,22 @@
       .remove();
   }
 
+  // Ponto de entrada unico chamado pelo loop de animacao: atualiza os
+  // paineis (sempre) e delega o efeito visual no mapa para o modo ativo.
+  function fireEvent(ev) {
+    prependEventToList(ev);
+    bumpCountryRanking(ev.targetCountry);
+    if (viewMode === "3d") {
+      fire3D(ev);
+    } else {
+      fire2D(ev);
+    }
+  }
+
   // Desenha o caminho do ataque: a linha "revela" do zero ate o comprimento
   // total (dash-offset) enquanto um ponto percorre o mesmo trajeto, saindo
   // da origem e chegando ao destino, como no cybermap da Kaspersky.
-  function fireEvent(ev) {
+  function fire2D(ev) {
     const color = ev.color || "#33e0ff";
     const d = arcPath(ev.sourceCoord, ev.targetCoord);
 
@@ -116,7 +138,12 @@
       });
 
     impactPulse(ev.sourceCoord, color);
-    prependEventToList(ev);
+  }
+
+  function bumpCountryRanking(country) {
+    if (!country) return;
+    countryTotals.set(country, (countryTotals.get(country) || 0) + 1);
+    renderCountryRanking(countryRankingArray(), country);
   }
 
   function prependEventToList(ev) {
@@ -149,7 +176,28 @@
       });
   }
 
-  function renderCountryRanking(ranking) {
+  // Tally ao vivo: quantas vezes cada pais-alvo apareceu nos ataques
+  // exibidos em "Eventos recentes" desde que a pagina foi carregada.
+  let countryTotals = new Map();
+
+  // Comeca com valores aleatorios (em vez da contagem literal, quase empatada)
+  // para que o ranking ja nasca embaralhado e as posicoes tenham de onde variar.
+  function buildInitialCountryTally(events) {
+    const countries = [...new Set(events.map((ev) => ev.targetCountry).filter(Boolean))];
+    const map = new Map();
+    for (const country of countries) {
+      map.set(country, 5 + Math.floor(Math.random() * 40));
+    }
+    return map;
+  }
+
+  function countryRankingArray() {
+    return [...countryTotals.entries()]
+      .map(([country, count]) => ({ country, count }))
+      .sort((a, b) => b.count - a.count);
+  }
+
+  function renderCountryRanking(ranking, bumpedCountry) {
     countryRankingEl.innerHTML = "";
     if (!ranking.length) {
       countryRankingEl.innerHTML = '<li class="event-meta">sem dados</li>';
@@ -157,9 +205,10 @@
     }
     ranking.forEach((r) => {
       const li = document.createElement("li");
+      if (r.country === bumpedCountry) li.classList.add("rank-bump");
       li.innerHTML = `
         <span class="rank-flag">${flagSpan(r.country)}<span class="rank-country">${countryName(r.country)}</span></span>
-        <span class="count">${r.reports.toLocaleString("pt-BR")}</span>`;
+        <span class="count">${r.count.toLocaleString("pt-BR")}</span>`;
       countryRankingEl.appendChild(li);
     });
   }
@@ -228,14 +277,218 @@
       .on("mouseleave", hideTooltip);
   }
 
+  // ---------------------------------------------------------------------
+  // Visualizacao 3D (globe.gl / Three.js) -- carregada sob demanda, so
+  // quando o usuario troca pra "3D" pela primeira vez, para nao pesar o
+  // carregamento inicial de quem nunca usa esse modo.
+  // ---------------------------------------------------------------------
+
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      if (document.querySelector(`script[src="${src}"]`)) return resolve();
+      const s = document.createElement("script");
+      s.src = src;
+      s.onload = () => resolve();
+      s.onerror = () => reject(new Error(`Falha ao carregar ${src}`));
+      document.head.appendChild(s);
+    });
+  }
+
+  // O bundle do globe.gl ja embute sua propria copia do Three.js -- carregar
+  // um Three.js separado causa conflito de instancias multiplas e quebra a lib.
+  async function ensureGlobeLibs() {
+    if (globeLibsLoaded) return;
+    await loadScript("https://cdn.jsdelivr.net/npm/globe.gl");
+    globeLibsLoaded = true;
+  }
+
+  function buildGlobePoints(events) {
+    const points = events.map((ev) => ({
+      lat: ev.sourceCoord[1],
+      lng: ev.sourceCoord[0],
+      color: ev.color || "#33e0ff",
+      radius: 0.35,
+      altitude: 0.01,
+      label: `<div class="attack-line">${flagSpan(ev.country)}<strong style="color:${ev.color || "#33e0ff"}">${ev.attackType || "?"}</strong>${flagSpan(ev.targetCountry)}</div>${countryName(ev.country)} &middot; ${ev.ip}<br/>${ev.reports.toLocaleString("pt-BR")} registros`,
+    }));
+
+    const hubs = new Map();
+    for (const ev of events) {
+      if (!hubs.has(ev.targetHub)) {
+        hubs.set(ev.targetHub, {
+          lat: ev.targetCoord[1],
+          lng: ev.targetCoord[0],
+          color: "#7c88a6",
+          radius: 0.55,
+          altitude: 0.012,
+          label: countryName(ev.targetCountry),
+        });
+      }
+    }
+    return points.concat([...hubs.values()]);
+  }
+
+  function resizeGlobe() {
+    if (!globeInstance) return;
+    const el = document.getElementById("globe");
+    globeInstance.width(el.clientWidth).height(el.clientHeight);
+  }
+
+  function initGlobe(events) {
+    const el = document.getElementById("globe");
+    globeInstance = new Globe(el)
+      .backgroundColor("rgba(0,0,0,0)")
+      .showGlobe(true)
+      .showAtmosphere(true)
+      .atmosphereColor("#33e0ff")
+      .atmosphereAltitude(0.18)
+      .polygonsData(worldFeatures || [])
+      .polygonCapColor(() => "#131a30")
+      .polygonSideColor(() => "rgba(35,45,79,0.5)")
+      .polygonStrokeColor(() => "#232d4f")
+      .polygonAltitude(0.005)
+      .polygonsTransitionDuration(0)
+      .pointsData(buildGlobePoints(events))
+      .pointLat("lat")
+      .pointLng("lng")
+      .pointColor("color")
+      .pointRadius("radius")
+      .pointAltitude("altitude")
+      .pointLabel("label")
+      .arcsData(globeArcs)
+      .arcStartLat((d) => d.startLat)
+      .arcStartLng((d) => d.startLng)
+      .arcEndLat((d) => d.endLat)
+      .arcEndLng((d) => d.endLng)
+      .arcColor((d) => d.color)
+      .arcDashLength(0.4)
+      .arcDashGap(0.2)
+      .arcDashAnimateTime(1100)
+      .arcStroke(0.5)
+      .ringsData(globeRings)
+      .ringLat((d) => d.lat)
+      .ringLng((d) => d.lng)
+      .ringColor((d) => () => d.color)
+      .ringMaxRadius(3)
+      .ringPropagationSpeed(2.5)
+      .ringRepeatPeriod(1200);
+
+    // Sem globeImageUrl (sem textura de foto da Terra) -- pinta o material
+    // ja criado pela lib na cor de fundo do nosso tema, mantendo consistencia
+    // visual com o mapa 2D (oceano escuro, paises em --land).
+    const material = globeInstance.globeMaterial();
+    material.color.set("#05070d");
+
+    resizeGlobe();
+    window.addEventListener("resize", resizeGlobe);
+
+    globeInstance.pointOfView({ lat: 20, lng: 0, altitude: 2.2 }, 0);
+    const controls = globeInstance.controls();
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.4;
+    controls.enableZoom = true;
+  }
+
+  // Cor neutra para o pulso de chegada no hub -- o hub e so um ponto de
+  // referencia ilustrativo, nao deve "emitir" a cor do tipo de ataque como
+  // se ele proprio fosse a origem ou o tipo do ataque.
+  const HUB_PULSE_COLOR = "#7c88a6";
+
+  // Mesma ideia do fire2D (arco saindo da origem, pulso no impacto), so que
+  // usando as propriedades reativas do globe.gl em vez de manipular SVG.
+  function fire3D(ev) {
+    const color = ev.color || "#33e0ff";
+    const arc = {
+      startLat: ev.sourceCoord[1],
+      startLng: ev.sourceCoord[0],
+      endLat: ev.targetCoord[1],
+      endLng: ev.targetCoord[0],
+      color,
+    };
+    globeArcs.push(arc);
+    globeInstance.arcsData(globeArcs);
+
+    const sourceRing = { lat: ev.sourceCoord[1], lng: ev.sourceCoord[0], color };
+    globeRings.push(sourceRing);
+    globeInstance.ringsData(globeRings);
+
+    setTimeout(() => {
+      const targetRing = { lat: ev.targetCoord[1], lng: ev.targetCoord[0], color: HUB_PULSE_COLOR };
+      globeRings.push(targetRing);
+      globeInstance.ringsData(globeRings);
+
+      globeArcs = globeArcs.filter((a) => a !== arc);
+      globeInstance.arcsData(globeArcs);
+
+      setTimeout(() => {
+        globeRings = globeRings.filter((r) => r !== targetRing);
+        globeInstance.ringsData(globeRings);
+      }, 1200);
+    }, 1100);
+
+    setTimeout(() => {
+      globeRings = globeRings.filter((r) => r !== sourceRing);
+      globeInstance.ringsData(globeRings);
+    }, 1200);
+  }
+
+  async function switchView(mode) {
+    if (mode === viewMode) return;
+    document.querySelectorAll(".view-btn").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.mode === mode);
+    });
+
+    if (mode === "3d") {
+      const loadingEl = document.getElementById("globe-loading");
+      if (!globeLibsLoaded) loadingEl.classList.remove("hidden");
+      try {
+        await ensureGlobeLibs();
+        if (!globeInstance) initGlobe((liveData && liveData.events) || []);
+      } finally {
+        loadingEl.classList.add("hidden");
+      }
+      document.getElementById("map").classList.add("hidden");
+      document.getElementById("globe").classList.remove("hidden");
+      document.getElementById("rotation-control").classList.remove("hidden");
+      resizeGlobe();
+    } else {
+      document.getElementById("globe").classList.add("hidden");
+      document.getElementById("map").classList.remove("hidden");
+      document.getElementById("rotation-control").classList.add("hidden");
+    }
+    viewMode = mode;
+  }
+
+  function initViewToggle() {
+    document.querySelectorAll(".view-btn").forEach((btn) => {
+      btn.addEventListener("click", () => switchView(btn.dataset.mode));
+    });
+
+    const speedInput = document.getElementById("rotation-speed");
+    speedInput.addEventListener("input", () => {
+      if (!globeInstance) return;
+      const speed = parseFloat(speedInput.value);
+      const controls = globeInstance.controls();
+      controls.autoRotate = speed > 0;
+      controls.autoRotateSpeed = speed;
+    });
+  }
+
   // Reproduz os eventos coletados em loop, com atraso aleatorio entre cada
   // disparo, ja que os dados brutos do DShield so mudam a cada ~15 minutos.
+  // Sorteia o proximo ataque em vez de seguir sempre a mesma sequencia --
+  // assim a frequencia de cada pais-alvo varia com o tempo (em vez de todos
+  // andarem em lockstep, um atras do outro) e o ranking realmente embaralha.
   function startAnimationLoop(events) {
     if (!events.length) return;
-    let i = 0;
+    let lastIndex = -1;
     function tick() {
-      fireEvent(events[i % events.length]);
-      i++;
+      let idx = Math.floor(Math.random() * events.length);
+      if (events.length > 1 && idx === lastIndex) {
+        idx = (idx + 1) % events.length;
+      }
+      lastIndex = idx;
+      fireEvent(events[idx]);
       setTimeout(tick, 500 + Math.random() * 1100);
     }
     tick();
@@ -244,6 +497,7 @@
   async function loadWorld() {
     const world = await d3.json("data/world-110m.json");
     const countries = topojson.feature(world, world.objects.countries);
+    worldFeatures = countries.features;
     landLayer
       .selectAll("path")
       .data(countries.features)
@@ -265,6 +519,7 @@
   }
 
   async function init() {
+    initViewToggle();
     await loadWorld();
     try {
       const [data] = await Promise.all([
@@ -273,10 +528,12 @@
           countryNames = names;
         }),
       ]);
+      liveData = data;
       updatedAtEl.textContent = `Fonte: ${data.source}`;
       renderPortList(data.ports || []);
       renderCveList(data.cves || []);
-      renderCountryRanking(data.countryRanking || []);
+      countryTotals = buildInitialCountryTally(data.events || []);
+      renderCountryRanking(countryRankingArray());
       renderLegend(data.categories || []);
       renderHubs(data.events || []);
       renderSourceDots(data.events || []);
