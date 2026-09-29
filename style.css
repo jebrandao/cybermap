@@ -94,9 +94,82 @@ html, body {
   grid-area: map;
   position: relative;
   overflow: hidden;
+  min-height: 280px;
 }
 
 #map { width: 100%; height: 100%; display: block; }
+
+#globe { width: 100%; height: 100%; }
+#globe.hidden, #map.hidden { display: none; }
+
+#view-toggle {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  display: flex;
+  gap: 2px;
+  background: rgba(10, 14, 28, 0.85);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 3px;
+}
+
+.view-btn {
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 5px 14px;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.view-btn:hover { color: var(--text); }
+.view-btn.active {
+  background: var(--senai-blue);
+  color: #05070d;
+}
+
+#rotation-control {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(10, 14, 28, 0.85);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 6px 14px;
+}
+#rotation-control.hidden { display: none; }
+#rotation-control label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+}
+#rotation-control input[type="range"] {
+  width: 80px;
+  accent-color: var(--senai-blue);
+  cursor: pointer;
+}
+
+#globe-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 5;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+#globe-loading.hidden { display: none; }
 
 .land { fill: var(--land); stroke: var(--land-stroke); stroke-width: 0.5; }
 
@@ -213,6 +286,42 @@ html, body {
   overflow-y: auto;
 }
 
+/* Scrollbar minimalista para as areas com rolagem propria. */
+#event-list,
+#country-ranking,
+#panel-right {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+#event-list::-webkit-scrollbar,
+#country-ranking::-webkit-scrollbar,
+#panel-right::-webkit-scrollbar {
+  width: 6px;
+}
+#event-list::-webkit-scrollbar-button,
+#country-ranking::-webkit-scrollbar-button,
+#panel-right::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+#event-list::-webkit-scrollbar-track,
+#country-ranking::-webkit-scrollbar-track,
+#panel-right::-webkit-scrollbar-track {
+  background: transparent;
+}
+#event-list::-webkit-scrollbar-thumb,
+#country-ranking::-webkit-scrollbar-thumb,
+#panel-right::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+#event-list::-webkit-scrollbar-thumb:hover,
+#country-ranking::-webkit-scrollbar-thumb:hover,
+#panel-right::-webkit-scrollbar-thumb:hover {
+  background: var(--text-dim);
+}
+
 #port-list li {
   display: flex;
   justify-content: space-between;
@@ -233,7 +342,14 @@ html, body {
   gap: 8px;
   padding: 6px 0;
   border-bottom: 1px solid var(--border);
+  border-radius: 4px;
 }
+
+@keyframes rank-flash {
+  0% { background: rgba(131, 199, 229, 0.35); }
+  100% { background: transparent; }
+}
+.rank-bump { animation: rank-flash 0.9s ease-out; }
 
 #country-ranking li::before {
   content: counter(rank) ".";
