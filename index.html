@@ -8,7 +8,7 @@
 <meta http-equiv="Expires" content="0" />
 <title>CyberMap &mdash; Ataques em Tempo (quase) Real</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7/css/flag-icons.min.css" />
-<link rel="stylesheet" href="style.css?v=8" />
+<link rel="stylesheet" href="style.css?v=16" />
 </head>
 <body>
   <div id="app">
@@ -37,6 +37,10 @@
     </aside>
 
     <main id="map-wrap">
+      <div id="attack-counter" class="hidden">
+        <span id="attack-counter-value">0</span>
+        <span class="attack-counter-label">registros de ataque hoje</span>
+      </div>
       <div id="view-toggle">
         <button type="button" class="view-btn active" data-mode="2d">2D</button>
         <button type="button" class="view-btn" data-mode="3d">3D</button>
@@ -49,6 +53,7 @@
       <div id="globe" class="hidden"></div>
       <div id="globe-loading" class="hidden">Carregando globo 3D&hellip;</div>
       <div id="tooltip" class="hidden"></div>
+      <div id="update-time" class="hidden"></div>
       <ul id="map-legend"></ul>
     </main>
 
@@ -58,7 +63,13 @@
         <ul id="cve-list"></ul>
       </section>
       <section>
-        <h2>Portas mais visadas</h2>
+        <div class="section-head">
+          <h2>Portas mais visadas</h2>
+          <div id="ports-period" class="period-toggle">
+            <button type="button" class="period-btn active" data-period="today">Hoje</button>
+            <button type="button" class="period-btn" data-period="week_ago">7 dias atrás</button>
+          </div>
+        </div>
         <ul id="port-list"></ul>
       </section>
       <section id="about">
@@ -77,6 +88,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
-  <script src="src/app.js?v=8"></script>
+  <script src="src/app.js?v=17"></script>
 </body>
 </html>
