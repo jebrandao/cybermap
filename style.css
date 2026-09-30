@@ -101,6 +101,33 @@ html, body {
 #globe { width: 100%; height: 100%; }
 #globe.hidden, #map.hidden { display: none; }
 
+#attack-counter {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 5;
+  background: rgba(10, 14, 28, 0.85);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 6px 14px;
+  line-height: 1.2;
+}
+#attack-counter.hidden { display: none; }
+#attack-counter-value {
+  display: block;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent-2);
+  text-shadow: 0 0 12px rgba(255, 51, 102, 0.35);
+}
+.attack-counter-label {
+  display: block;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+}
+
 #view-toggle {
   position: absolute;
   top: 12px;
@@ -216,6 +243,20 @@ html, body {
   pointer-events: none;
 }
 
+#update-time {
+  position: absolute;
+  right: 16px;
+  bottom: 8px;
+  z-index: 6;
+  font-size: 10px;
+  color: var(--text-dim);
+  opacity: 0.7;
+  pointer-events: none;
+  white-space: nowrap;
+}
+#update-time.hidden { display: none; }
+#update-time.stacked { bottom: 56px; }
+
 .legend-swatch {
   display: inline-block;
   width: 10px;
@@ -262,6 +303,26 @@ html, body {
   border-top: 1px solid var(--border);
 }
 
+/* Painel direito: CVEs e portas divididos 50/50, cada um com rolagem
+   propria; "Sobre" continua abaixo, fora da divisao, no fluxo normal. */
+#panel-right section:nth-of-type(1),
+#panel-right section:nth-of-type(2) {
+  display: flex;
+  flex-direction: column;
+  height: 300px;
+  min-height: 0;
+}
+#panel-right section:nth-of-type(1) h2,
+#panel-right section:nth-of-type(1) .section-head,
+#panel-right section:nth-of-type(2) h2,
+#panel-right section:nth-of-type(2) .section-head {
+  flex: none;
+}
+#panel-right section:nth-of-type(2) {
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
 #panel-left h2, #panel-right h2 {
   font-size: 12px;
   text-transform: uppercase;
@@ -272,6 +333,43 @@ html, body {
 }
 #panel-right section:first-child h2 { margin-top: 0; }
 
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.section-head h2 { margin: 0; }
+
+.period-toggle {
+  display: flex;
+  gap: 2px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 2px;
+  flex: none;
+}
+.period-btn {
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 3px 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+.period-btn:hover { color: var(--text); }
+.period-btn.active {
+  background: var(--senai-blue);
+  color: #05070d;
+}
+
 #event-list, #port-list, #cve-list, #country-ranking {
   list-style: none;
   margin: 0;
@@ -279,7 +377,7 @@ html, body {
   font-size: 13px;
 }
 
-#event-list, #country-ranking {
+#event-list, #country-ranking, #port-list, #cve-list {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -288,17 +386,23 @@ html, body {
 /* Scrollbar minimalista para as areas com rolagem propria. */
 #event-list,
 #country-ranking,
+#port-list,
+#cve-list,
 #panel-right {
   scrollbar-width: thin;
   scrollbar-color: var(--border) transparent;
 }
 #event-list::-webkit-scrollbar,
 #country-ranking::-webkit-scrollbar,
+#port-list::-webkit-scrollbar,
+#cve-list::-webkit-scrollbar,
 #panel-right::-webkit-scrollbar {
   width: 6px;
 }
 #event-list::-webkit-scrollbar-button,
 #country-ranking::-webkit-scrollbar-button,
+#port-list::-webkit-scrollbar-button,
+#cve-list::-webkit-scrollbar-button,
 #panel-right::-webkit-scrollbar-button {
   display: none;
   width: 0;
@@ -306,27 +410,60 @@ html, body {
 }
 #event-list::-webkit-scrollbar-track,
 #country-ranking::-webkit-scrollbar-track,
+#port-list::-webkit-scrollbar-track,
+#cve-list::-webkit-scrollbar-track,
 #panel-right::-webkit-scrollbar-track {
   background: transparent;
 }
 #event-list::-webkit-scrollbar-thumb,
 #country-ranking::-webkit-scrollbar-thumb,
+#port-list::-webkit-scrollbar-thumb,
+#cve-list::-webkit-scrollbar-thumb,
 #panel-right::-webkit-scrollbar-thumb {
   background: var(--border);
   border-radius: 3px;
 }
 #event-list::-webkit-scrollbar-thumb:hover,
 #country-ranking::-webkit-scrollbar-thumb:hover,
+#port-list::-webkit-scrollbar-thumb:hover,
+#cve-list::-webkit-scrollbar-thumb:hover,
 #panel-right::-webkit-scrollbar-thumb:hover {
   background: var(--text-dim);
 }
 
 #port-list li {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.port-row {
   display: flex;
   justify-content: space-between;
   gap: 8px;
-  padding: 6px 0;
-  border-bottom: 1px solid var(--border);
+}
+
+.proto-split {
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.proto-bar {
+  display: flex;
+  width: 50px;
+  height: 4px;
+  border-radius: 2px;
+  overflow: hidden;
+  background: var(--border);
+  flex: none;
+}
+.proto-tcp { background: var(--accent); height: 100%; }
+.proto-udp { background: #ffd166; height: 100%; }
+
+.proto-label {
+  font-size: 9px;
+  color: var(--text-dim);
 }
 
 #country-ranking {
@@ -414,6 +551,26 @@ html, body {
 
 .event-meta .country { color: var(--text); font-weight: 600; }
 
+.threat-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.threat-tag {
+  font-size: 9px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 8px;
+  background: rgba(255, 51, 102, 0.15);
+  color: #ff8fa3;
+  border: 1px solid rgba(255, 51, 102, 0.35);
+  white-space: nowrap;
+}
+
+#tooltip .threat-tags { margin-top: 6px; }
+
 #port-list .count { color: var(--text-dim); }
 
 #cve-list li {
@@ -477,6 +634,10 @@ html, body {
     border-top: 1px solid var(--border);
     max-height: 40vh;
   }
+  #panel-right section:nth-of-type(1),
+  #panel-right section:nth-of-type(2) {
+    height: 140px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -486,4 +647,15 @@ html, body {
   .logo-badge { padding: 4px 7px; }
   #senai-logo { height: 18px; }
   #updated-at { font-size: 10px; }
+
+  /* Evita sobrepor o seletor 2D/3D centralizado em telas estreitas --
+     o contador desce para uma segunda linha, centralizado. */
+  #attack-counter {
+    left: 50%;
+    top: 52px;
+    transform: translateX(-50%);
+    padding: 4px 12px;
+  }
+  #attack-counter-value { font-size: 16px; }
+  #update-time.stacked { bottom: 60px; right: 12px; }
 }

@@ -16,6 +16,7 @@ import {
   CATEGORY_LABELS,
   CATEGORY_ORDER,
 } from "./attack-types.mjs";
+import { buildThreatTags } from "./threat-feeds.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = join(__dirname, "..", "data");
@@ -25,6 +26,7 @@ const USER_AGENT = `cybermap-clone (+${CONTACT})`;
 
 const TOP_IPS_LIMIT = Number(process.env.TOP_IPS_LIMIT || 20);
 const TOP_PORTS_LIMIT = Number(process.env.TOP_PORTS_LIMIT || 10);
+const TOTAL_PORTS_SAMPLE = Number(process.env.TOTAL_PORTS_SAMPLE || 50);
 const CVE_LIMIT = Number(process.env.CVE_LIMIT || 8);
 const REQUEST_DELAY_MS = 400;
 
@@ -142,22 +144,70 @@ async function fetchRecentCVEs(limit) {
   return [...scored, ...unscored].slice(0, limit);
 }
 
-async function main() {
-  console.log("Buscando top portas...");
-  const topPortsRaw = await fetchJSON(
-    `https://isc.sans.edu/api/topports/records/${TOP_PORTS_LIMIT}?json`
-  );
-  // A API retorna um objeto com chaves numericas ("0","1",...) mais "date"/"limit",
-  // nao um array puro.
-  const topPortsRawList = Object.values(topPortsRaw).filter(
-    (v) => v && typeof v === "object" && "targetport" in v
-  );
-  const topPorts = topPortsRawList.map((p) => ({
+// A API retorna um objeto com chaves numericas ("0","1",...) mais "date"/"limit",
+// nao um array puro. dateStr (YYYY-MM-DD) e opcional -- omitido, a API usa hoje.
+async function fetchTopPorts(limit, dateStr) {
+  const suffix = dateStr ? `/${dateStr}` : "";
+  const raw = await fetchJSON(`https://isc.sans.edu/api/topports/records/${limit}${suffix}?json`);
+  const list = Object.values(raw).filter((v) => v && typeof v === "object" && "targetport" in v);
+  const ports = list.map((p) => ({
     port: Number(p.targetport),
     records: Number(p.records),
     targets: Number(p.targets),
     sources: Number(p.sources),
   }));
+  const date = typeof raw.date === "string" ? raw.date : dateStr || null;
+  return { ports, date };
+}
+
+function isoDateDaysAgo(days) {
+  return new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
+async function main() {
+  console.log("Buscando top portas (hoje)...");
+  const { ports: topPorts, date: portsDate } = await fetchTopPorts(TOP_PORTS_LIMIT);
+
+  await sleep(REQUEST_DELAY_MS);
+
+  console.log("Buscando top portas (7 dias atras)...");
+  let portsWeekAgo = [];
+  let portsWeekAgoDate = null;
+  try {
+    const weekAgo = await fetchTopPorts(TOP_PORTS_LIMIT, isoDateDaysAgo(7));
+    portsWeekAgo = weekAgo.ports;
+    portsWeekAgoDate = weekAgo.date;
+  } catch (err) {
+    console.warn(`Nao foi possivel buscar portas de 7 dias atras: ${err.message}`);
+  }
+
+  await sleep(REQUEST_DELAY_MS);
+
+  // Amostra maior (so pra somar), sem inflar a lista exibida na tela --
+  // da um numero mais representativo do volume total do dia sem custar
+  // requisicoes extras de TCP/UDP para portas que nao aparecem na lista.
+  console.log("Buscando amostra ampla de portas para o total do dia...");
+  let totalRecordsToday = null;
+  try {
+    const { ports: totalList } = await fetchTopPorts(TOTAL_PORTS_SAMPLE);
+    totalRecordsToday = totalList.reduce((sum, p) => sum + (Number(p.records) || 0), 0);
+  } catch (err) {
+    console.warn(`Nao foi possivel calcular o total do dia: ${err.message}`);
+  }
+
+  console.log("Buscando proporcao TCP/UDP por porta...");
+  for (const p of topPorts) {
+    await sleep(REQUEST_DELAY_MS);
+    try {
+      const detail = await fetchJSON(`https://isc.sans.edu/api/port/${p.port}?json`);
+      const tcp = Number(detail?.data?.tcp);
+      const udp = Number(detail?.data?.udp);
+      if (!Number.isNaN(tcp)) p.tcpPct = tcp;
+      if (!Number.isNaN(udp)) p.udpPct = udp;
+    } catch (err) {
+      console.warn(`Nao foi possivel obter proporcao TCP/UDP da porta ${p.port}: ${err.message}`);
+    }
+  }
 
   await sleep(REQUEST_DELAY_MS);
 
@@ -176,9 +226,11 @@ async function main() {
 
     await sleep(REQUEST_DELAY_MS);
     let country = null;
+    let threatTags = [];
     try {
       const details = await fetchJSON(`https://isc.sans.edu/api/ip/${ip}?json`);
       country = details?.ip?.ascountry || null;
+      threatTags = buildThreatTags(details?.ip?.threatfeeds);
     } catch (err) {
       console.warn(`Nao foi possivel resolver pais de ${ip}: ${err.message}`);
       continue;
@@ -210,6 +262,7 @@ async function main() {
       attackType,
       category,
       color: CATEGORY_COLORS[category] || CATEGORY_COLORS.other,
+      threatTags,
     });
     ipIndex++;
   }
@@ -238,11 +291,23 @@ async function main() {
     source: "SANS Internet Storm Center / DShield (isc.sans.edu)",
     portAttributionNote:
       "A porta/tipo de ataque de cada evento e sorteada com peso pela distribuicao agregada de topports do dia; a API nao associa porta a um IP atacante especifico.",
+    threatTagsNote:
+      "As tags de ameaca (quando presentes) vem do campo threatfeeds da API do DShield -- sao listas de reputacao de terceiros que ja flagraram aquele IP especifico. E dado real, nao inferido; a maioria dos IPs nao tem nenhuma tag.",
+    portProtocolNote:
+      "tcpPct/udpPct vem do campo tcp/udp de api/port/{porta} do DShield. Nao somam exatamente 100 (parte do trafego fica sem protocolo classificado); nao sao uma contagem de registros, sao a proporcao reportada pela API.",
+    totalRecordsToday,
+    portsDate,
+    totalRecordsNote:
+      `Soma dos registros (records) das ${TOTAL_PORTS_SAMPLE} portas mais reportadas no dia pela API topports do DShield. Nao e o total absoluto de todos os ataques da internet -- e uma amostra real considerável, nao uma estimativa inventada.`,
     cveNote:
       "Lista informativa de CVEs publicados recentemente (fonte: NVD/NIST), sem relacao direta com os eventos de ataque exibidos no mapa.",
     countryRankingNote:
       "Ranking baseado no volume de registros dos eventos coletados, agrupado pelo pais dos hubs de destino estilizados -- nao reflete vitimas reais por pais.",
     ports: topPorts,
+    portsHistory: {
+      today: { date: portsDate, ports: topPorts },
+      week_ago: { date: portsWeekAgoDate, ports: portsWeekAgo },
+    },
     events,
     cves,
     countryRanking,

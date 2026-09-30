@@ -140,10 +140,25 @@
     impactPulse(ev.sourceCoord, color);
   }
 
+  // Incremento proporcional ao valor atual (0.5%-2%, minimo 1) em vez de
+  // sempre +1 -- com os valores iniciais agora na casa dos milhares, um +1
+  // fixo seria imperceptivel.
   function bumpCountryRanking(country) {
     if (!country) return;
-    countryTotals.set(country, (countryTotals.get(country) || 0) + 1);
+    const current = countryTotals.get(country) || 0;
+    const bump = Math.max(1, Math.round(current * (0.005 + Math.random() * 0.015)));
+    countryTotals.set(country, current + bump);
     renderCountryRanking(countryRankingArray(), country);
+  }
+
+  // As tags (quando existem) vem do campo threatfeeds do DShield: listas de
+  // reputacao de terceiros que ja flagraram aquele IP -- dado real, nao
+  // inferido. A maioria dos IPs nao tem nenhuma.
+  function threatTagsHtml(tags) {
+    if (!tags || !tags.length) return "";
+    return `<div class="threat-tags">${tags
+      .map((t) => `<span class="threat-tag" title="Visto pela ultima vez em ${t.lastSeen || "?"}">${t.label}</span>`)
+      .join("")}</div>`;
   }
 
   function prependEventToList(ev) {
@@ -156,11 +171,85 @@
           ${flagSpan(ev.targetCountry)}
         </div>
         <span class="event-meta"><span class="country">${countryName(ev.country)}</span> &middot; ${ev.ip}</span>
+        ${threatTagsHtml(ev.threatTags)}
       </div>`;
     eventListEl.prepend(li);
     while (eventListEl.children.length > 14) {
       eventListEl.removeChild(eventListEl.lastChild);
     }
+  }
+
+  // tcpPct/udpPct vem de api/port/{porta} do DShield -- proporcao real do
+  // trafego daquela porta, nao uma contagem (por isso nao somam sempre 100).
+  function protocolSplitHtml(p) {
+    const tcp = p.tcpPct;
+    const udp = p.udpPct;
+    if (tcp === undefined || udp === undefined) return "";
+    const tcpW = Math.max(0, Math.min(100, tcp));
+    const udpW = Math.max(0, Math.min(100, udp));
+    return `
+      <div class="proto-split" title="TCP ${tcp}% · UDP ${udp}%">
+        <div class="proto-bar">
+          <span class="proto-tcp" style="width:${tcpW}%"></span>
+          <span class="proto-udp" style="width:${udpW}%"></span>
+        </div>
+        <span class="proto-label">TCP ${tcp}% · UDP ${udp}%</span>
+      </div>`;
+  }
+
+  function renderAttackCounter(total) {
+    if (total === null || total === undefined) return;
+    const el = document.getElementById("attack-counter");
+    document.getElementById("attack-counter-value").textContent = total.toLocaleString("pt-BR");
+    el.classList.remove("hidden");
+  }
+
+  function renderUpdateTime(generatedAt) {
+    if (!generatedAt) return;
+    const date = new Date(generatedAt);
+    if (Number.isNaN(date.getTime())) return;
+    const el = document.getElementById("update-time");
+    el.textContent = `Atualizado às ${date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
+    el.classList.remove("hidden");
+    positionUpdateTime();
+  }
+
+  // Fica ao lado da legenda, na mesma altura, quando ha espaco; sobe pra
+  // cima dela (fica empilhado) quando a largura da tela nao da pra caber
+  // os dois lado a lado sem sobrepor.
+  function positionUpdateTime() {
+    const el = document.getElementById("update-time");
+    const items = document.querySelectorAll("#map-legend li");
+    if (el.classList.contains("hidden") || !items.length) return;
+    el.classList.remove("stacked");
+    const elBox = el.getBoundingClientRect();
+    // Compara com o item mais a direita de fato (o <ul> em si ocupa 100% da
+    // largura por causa do left:0/right:0, mesmo com o conteudo centralizado).
+    const rightmost = [...items].reduce(
+      (max, li) => Math.max(max, li.getBoundingClientRect().right),
+      0
+    );
+    const lastItemBox = items[items.length - 1].getBoundingClientRect();
+    const overlapsVertically = elBox.bottom > lastItemBox.top;
+    const overlapsHorizontally = elBox.left < rightmost + 12;
+    if (overlapsVertically && overlapsHorizontally) {
+      el.classList.add("stacked");
+    }
+  }
+
+  window.addEventListener("resize", () => positionUpdateTime());
+
+  let portsHistory = null;
+
+  function initPortsPeriodToggle() {
+    document.querySelectorAll(".period-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        if (!portsHistory) return;
+        document.querySelectorAll(".period-btn").forEach((b) => b.classList.toggle("active", b === btn));
+        const snapshot = portsHistory[btn.dataset.period];
+        renderPortList((snapshot && snapshot.ports) || []);
+      });
+    });
   }
 
   function renderPortList(ports) {
@@ -171,7 +260,11 @@
       .slice(0, 8)
       .forEach((p) => {
         const li = document.createElement("li");
-        li.innerHTML = `<span>porta ${p.port}</span><span class="count">${p.records.toLocaleString("pt-BR")}</span>`;
+        li.innerHTML = `
+          <div class="port-row">
+            <span>porta ${p.port}</span><span class="count">${p.records.toLocaleString("pt-BR")}</span>
+          </div>
+          ${protocolSplitHtml(p)}`;
         portListEl.appendChild(li);
       });
   }
@@ -182,12 +275,35 @@
 
   // Comeca com valores aleatorios (em vez da contagem literal, quase empatada)
   // para que o ranking ja nasca embaralhado e as posicoes tenham de onde variar.
-  function buildInitialCountryTally(events) {
+  // Os 12 hubs de destino ilustrativos sao uma fatia pequena perto dos 200+
+  // paises do mundo real -- a soma deles nao deveria bater no contador
+  // principal (isso exigiria numeros irreais por pais). Em vez disso, mira
+  // numa fracao plausivel do total (os "12 mais" concentrando uma parcela
+  // desproporcional do volume, como costuma acontecer na pratica), com
+  // pesos aleatorios e desiguais entre os paises em vez de uma faixa fixa
+  // desconectada do contador.
+  const COUNTRY_SHARE_OF_TOTAL = 0.12;
+
+  function buildInitialCountryTally(events, totalRecordsToday) {
     const countries = [...new Set(events.map((ev) => ev.targetCountry).filter(Boolean))];
     const map = new Map();
-    for (const country of countries) {
-      map.set(country, 5 + Math.floor(Math.random() * 40));
+    if (!countries.length) return map;
+
+    const targetSum = (totalRecordsToday || 0) * COUNTRY_SHARE_OF_TOTAL;
+    if (!targetSum) {
+      // Sem contador disponivel: mantem numeros pequenos e embaralhados.
+      countries.forEach((c) => map.set(c, 5 + Math.floor(Math.random() * 40)));
+      return map;
     }
+
+    // Pesos com variancia realista (alguns paises concentram bem mais que
+    // outros) em vez de distribuir o total igualmente entre os 12.
+    const weights = countries.map(() => Math.pow(Math.random(), 2) + 0.05);
+    const weightSum = weights.reduce((a, b) => a + b, 0);
+    countries.forEach((country, i) => {
+      const share = Math.round((weights[i] / weightSum) * targetSum);
+      map.set(country, Math.max(1, share));
+    });
     return map;
   }
 
@@ -270,7 +386,7 @@
       .on("mousemove", (event, d) => {
         showTooltip(
           `<div class="attack-line">${flagSpan(d.country)}<strong style="color:${d.color || "#33e0ff"}">${d.attackType || "?"}</strong>${flagSpan(d.targetCountry)}</div>` +
-            `${countryName(d.country)} &middot; ${d.ip}<br/>${d.reports.toLocaleString("pt-BR")} registros`,
+            `${countryName(d.country)} &middot; ${d.ip}<br/>${d.reports.toLocaleString("pt-BR")} registros${threatTagsHtml(d.threatTags)}`,
           [event.offsetX, event.offsetY]
         );
       })
@@ -309,7 +425,7 @@
       color: ev.color || "#33e0ff",
       radius: 0.35,
       altitude: 0.01,
-      label: `<div class="attack-line">${flagSpan(ev.country)}<strong style="color:${ev.color || "#33e0ff"}">${ev.attackType || "?"}</strong>${flagSpan(ev.targetCountry)}</div>${countryName(ev.country)} &middot; ${ev.ip}<br/>${ev.reports.toLocaleString("pt-BR")} registros`,
+      label: `<div class="attack-line">${flagSpan(ev.country)}<strong style="color:${ev.color || "#33e0ff"}">${ev.attackType || "?"}</strong>${flagSpan(ev.targetCountry)}</div>${countryName(ev.country)} &middot; ${ev.ip}<br/>${ev.reports.toLocaleString("pt-BR")} registros${threatTagsHtml(ev.threatTags)}`,
     }));
 
     const hubs = new Map();
@@ -520,6 +636,7 @@
 
   async function init() {
     initViewToggle();
+    initPortsPeriodToggle();
     await loadWorld();
     try {
       const [data] = await Promise.all([
@@ -529,12 +646,15 @@
         }),
       ]);
       liveData = data;
+      portsHistory = data.portsHistory || null;
       updatedAtEl.textContent = `Fonte: ${data.source}`;
+      renderAttackCounter(data.totalRecordsToday);
       renderPortList(data.ports || []);
       renderCveList(data.cves || []);
-      countryTotals = buildInitialCountryTally(data.events || []);
+      countryTotals = buildInitialCountryTally(data.events || [], data.totalRecordsToday);
       renderCountryRanking(countryRankingArray());
       renderLegend(data.categories || []);
+      renderUpdateTime(data.generatedAt);
       renderHubs(data.events || []);
       renderSourceDots(data.events || []);
       startAnimationLoop(data.events || []);
