@@ -1,19 +1,181 @@
 {
-  "generatedAt": "2026-10-26T00:40:18.890Z",
+  "generatedAt": "2026-10-26T05:23:51.972Z",
   "source": "SANS Internet Storm Center / DShield (isc.sans.edu)",
   "portAttributionNote": "A porta/tipo de ataque de cada evento e sorteada com peso pela distribuicao agregada de topports do dia; a API nao associa porta a um IP atacante especifico.",
   "threatTagsNote": "As tags de ameaca (quando presentes) vem do campo threatfeeds da API do DShield -- sao listas de reputacao de terceiros que ja flagraram aquele IP especifico. E dado real, nao inferido; a maioria dos IPs nao tem nenhuma tag.",
   "portProtocolNote": "tcpPct/udpPct vem do campo tcp/udp de api/port/{porta} do DShield. Nao somam exatamente 100 (parte do trafego fica sem protocolo classificado); nao sao uma contagem de registros, sao a proporcao reportada pela API.",
-  "totalRecordsToday": 0,
+  "totalRecordsToday": 517891,
   "portsDate": "2026-10-26",
   "totalRecordsNote": "Soma dos registros (records) das 50 portas mais reportadas no dia pela API topports do DShield. Nao e o total absoluto de todos os ataques da internet -- e uma amostra real considerável, nao uma estimativa inventada.",
   "cveNote": "Lista informativa de CVEs publicados recentemente (fonte: NVD/NIST), sem relacao direta com os eventos de ataque exibidos no mapa.",
   "countryRankingNote": "Ranking baseado no volume de registros dos eventos coletados, agrupado pelo pais dos hubs de destino estilizados -- nao reflete vitimas reais por pais.",
-  "ports": [],
+  "ports": [
+    {
+      "port": 22,
+      "records": 103253,
+      "targets": 242,
+      "sources": 3707,
+      "tcpPct": 99,
+      "udpPct": 0
+    },
+    {
+      "port": 23,
+      "records": 88963,
+      "targets": 235,
+      "sources": 4078,
+      "tcpPct": 98,
+      "udpPct": 0
+    },
+    {
+      "port": 443,
+      "records": 47316,
+      "targets": 211,
+      "sources": 2650,
+      "tcpPct": 95,
+      "udpPct": 2
+    },
+    {
+      "port": 2222,
+      "records": 31187,
+      "targets": 208,
+      "sources": 2295,
+      "tcpPct": 100,
+      "udpPct": 0
+    },
+    {
+      "port": 8080,
+      "records": 24227,
+      "targets": 217,
+      "sources": 1862,
+      "tcpPct": 99,
+      "udpPct": 0
+    },
+    {
+      "port": 16767,
+      "records": 18634,
+      "targets": 9,
+      "sources": 1609,
+      "tcpPct": 0,
+      "udpPct": 100
+    },
+    {
+      "port": 8000,
+      "records": 18617,
+      "targets": 215,
+      "sources": 1702,
+      "tcpPct": 99,
+      "udpPct": 0
+    },
+    {
+      "port": 80,
+      "records": 18057,
+      "targets": 230,
+      "sources": 2656,
+      "tcpPct": 94,
+      "udpPct": 2
+    },
+    {
+      "port": 9000,
+      "records": 16215,
+      "targets": 209,
+      "sources": 1537,
+      "tcpPct": 100,
+      "udpPct": 0
+    },
+    {
+      "port": 6881,
+      "records": 16186,
+      "targets": 104,
+      "sources": 634,
+      "tcpPct": 64,
+      "udpPct": 36
+    }
+  ],
   "portsHistory": {
     "today": {
       "date": "2026-10-26",
-      "ports": []
+      "ports": [
+        {
+          "port": 22,
+          "records": 103253,
+          "targets": 242,
+          "sources": 3707,
+          "tcpPct": 99,
+          "udpPct": 0
+        },
+        {
+          "port": 23,
+          "records": 88963,
+          "targets": 235,
+          "sources": 4078,
+          "tcpPct": 98,
+          "udpPct": 0
+        },
+        {
+          "port": 443,
+          "records": 47316,
+          "targets": 211,
+          "sources": 2650,
+          "tcpPct": 95,
+          "udpPct": 2
+        },
+        {
+          "port": 2222,
+          "records": 31187,
+          "targets": 208,
+          "sources": 2295,
+          "tcpPct": 100,
+          "udpPct": 0
+        },
+        {
+          "port": 8080,
+          "records": 24227,
+          "targets": 217,
+          "sources": 1862,
+          "tcpPct": 99,
+          "udpPct": 0
+        },
+        {
+          "port": 16767,
+          "records": 18634,
+          "targets": 9,
+          "sources": 1609,
+          "tcpPct": 0,
+          "udpPct": 100
+        },
+        {
+          "port": 8000,
+          "records": 18617,
+          "targets": 215,
+          "sources": 1702,
+          "tcpPct": 99,
+          "udpPct": 0
+        },
+        {
+          "port": 80,
+          "records": 18057,
+          "targets": 230,
+          "sources": 2656,
+          "tcpPct": 94,
+          "udpPct": 2
+        },
+        {
+          "port": 9000,
+          "records": 16215,
+          "targets": 209,
+          "sources": 1537,
+          "tcpPct": 100,
+          "udpPct": 0
+        },
+        {
+          "port": 6881,
+          "records": 16186,
+          "targets": 104,
+          "sources": 634,
+          "tcpPct": 64,
+          "udpPct": 36
+        }
+      ]
     },
     "week_ago": {
       "date": "2026-10-19",
@@ -83,119 +245,119 @@
   },
   "events": [
     {
-      "id": "13.94.254.200-1792975206011-0",
+      "id": "13.94.254.200-1792992216725-0",
       "ip": "13.94.254.200",
       "country": "US",
       "sourceCoord": [
-        -96.6792651051966,
-        38.07782475054013
+        -97.61197991409128,
+        37.033596017672515
       ],
       "targetCoord": [
-        -77.83983430642762,
-        38.94335173957772
+        -76.09103096748305,
+        37.45308341027951
       ],
       "targetHub": "US-Washington",
       "targetCountry": "US",
       "reports": 319739,
       "targets": 1,
-      "port": null,
-      "attackType": "Atividade suspeita",
+      "port": 6881,
+      "attackType": "Varredura porta 6881",
       "category": "other",
       "color": "#94a3b8",
       "threatTags": []
     },
     {
-      "id": "194.224.249.214-1792975206658-1",
+      "id": "194.224.249.214-1792992217291-1",
       "ip": "194.224.249.214",
       "country": "ES",
       "sourceCoord": [
-        -3.2934914755841613,
-        39.01554956848479
+        -4.570912230546877,
+        40.27353494009818
       ],
       "targetCoord": [
-        7.811757366989589,
-        51.05644027040661
+        9.375137162656275,
+        50.347174053071285
       ],
       "targetHub": "DE-Frankfurt",
       "targetCountry": "DE",
       "reports": 309508,
       "targets": 1,
-      "port": null,
-      "attackType": "Atividade suspeita",
+      "port": 6881,
+      "attackType": "Varredura porta 6881",
       "category": "other",
       "color": "#94a3b8",
       "threatTags": []
     },
     {
-      "id": "52.157.207.201-1792975207268-2",
+      "id": "52.157.207.201-1792992217816-2",
       "ip": "52.157.207.201",
       "country": "US",
       "sourceCoord": [
-        -96.33588348678269,
-        37.97628393801984
+        -95.93137480990693,
+        36.81381276313613
       ],
       "targetCoord": [
-        4.341573232004893,
-        53.17106529497364
+        5.658790494710167,
+        53.135663781180085
       ],
       "targetHub": "NL-Amsterdam",
       "targetCountry": "NL",
       "reports": 194780,
       "targets": 1,
-      "port": null,
-      "attackType": "Atividade suspeita",
-      "category": "other",
-      "color": "#94a3b8",
+      "port": 80,
+      "attackType": "HTTP Scan",
+      "category": "web",
+      "color": "#33e0ff",
       "threatTags": []
     },
     {
-      "id": "89.248.163.109-1792975207859-3",
+      "id": "89.248.163.109-1792992218342-3",
       "ip": "89.248.163.109",
       "country": "SC",
       "sourceCoord": [
-        56.57834283466035,
-        -4.5995426468307805
+        55.035977966912945,
+        -4.679445396858142
       ],
       "targetCoord": [
-        0.02765174964463346,
-        51.887055046744656
+        -0.8655695410890035,
+        52.15748686792053
       ],
       "targetHub": "GB-London",
       "targetCountry": "GB",
       "reports": 96279,
       "targets": 150,
-      "port": null,
-      "attackType": "Atividade suspeita",
-      "category": "other",
-      "color": "#94a3b8",
+      "port": 22,
+      "attackType": "SSH Brute-force",
+      "category": "remote",
+      "color": "#ff3366",
       "threatTags": [
         {
           "key": "recyber",
           "label": "ReCyber — lista de ameacas",
-          "lastSeen": "2026-10-25"
+          "lastSeen": "2026-10-26"
         }
       ]
     },
     {
-      "id": "143.244.186.35-1792975208450-4",
+      "id": "143.244.186.35-1792992218873-4",
       "ip": "143.244.186.35",
       "country": "US",
       "sourceCoord": [
-        -95.55030399340065,
-        37.614499336824856
+        -97.30165704403507,
+        39.39046985613692
       ],
       "targetCoord": [
-        2.4583241145628136,
-        48.88319586631085
+        1.8266090265951551,
+        49.763063443949335
       ],
       "targetHub": "FR-Paris",
       "targetCountry": "FR",
       "reports": 92007,
       "targets": 8,
-      "port": null,
-      "attackType": "Atividade suspeita",
-      "category": "other",
-      "color": "#94a3b8",
+      "port": 22,
+      "attackType": "SSH Brute-force",
+      "category": "remote",
+      "color": "#ff3366",
       "threatTags": [
         {
           "key": "ciarmy",
@@ -205,47 +367,47 @@
       ]
     },
     {
-      "id": "18.116.198.191-1792975208996-5",
+      "id": "18.116.198.191-1792992219373-5",
       "ip": "18.116.198.191",
       "country": "US",
       "sourceCoord": [
-        -97.91841403573103,
-        38.926934777659696
+        -96.10466507043026,
+        38.703865865195105
       ],
       "targetCoord": [
-        138.67360115661023,
-        35.94041296925115
+        140.03723017063342,
+        35.923982568444266
       ],
       "targetHub": "JP-Tokyo",
       "targetCountry": "JP",
       "reports": 59907,
       "targets": 1,
-      "port": null,
-      "attackType": "Atividade suspeita",
+      "port": 9000,
+      "attackType": "Varredura porta 9000",
       "category": "other",
       "color": "#94a3b8",
       "threatTags": []
     },
     {
-      "id": "152.89.198.163-1792975209647-6",
+      "id": "152.89.198.163-1792992219906-6",
       "ip": "152.89.198.163",
       "country": "HK",
       "sourceCoord": [
-        115.12522013456746,
-        21.06211818420699
+        112.94472214027581,
+        20.995510849700977
       ],
       "targetCoord": [
-        103.99660713815786,
-        1.9757150666947656
+        102.95976485282267,
+        0.2225059844523094
       ],
       "targetHub": "SG-Singapore",
       "targetCountry": "SG",
       "reports": 41378,
       "targets": 478,
-      "port": null,
-      "attackType": "Atividade suspeita",
-      "category": "other",
-      "color": "#94a3b8",
+      "port": 8080,
+      "attackType": "HTTP Proxy Scan",
+      "category": "web",
+      "color": "#33e0ff",
       "threatTags": [
         {
           "key": "ciarmy",
@@ -255,25 +417,25 @@
       ]
     },
     {
-      "id": "152.89.198.103-1792975210233-7",
+      "id": "152.89.198.103-1792992220434-7",
       "ip": "152.89.198.103",
       "country": "HK",
       "sourceCoord": [
-        114.44766418027328,
-        21.05800867491282
+        113.6786986336225,
+        22.164227140676797
       ],
       "targetCoord": [
-        73.02625585431764,
-        18.069505197971115
+        73.67793032583181,
+        19.10800233099351
       ],
       "targetHub": "IN-Mumbai",
       "targetCountry": "IN",
       "reports": 41346,
       "targets": 479,
-      "port": null,
-      "attackType": "Atividade suspeita",
-      "category": "other",
-      "color": "#94a3b8",
+      "port": 443,
+      "attackType": "HTTPS Scan",
+      "category": "web",
+      "color": "#33e0ff",
       "threatTags": [
         {
           "key": "ciarmy",
@@ -283,25 +445,25 @@
       ]
     },
     {
-      "id": "152.89.198.187-1792975210814-8",
+      "id": "152.89.198.187-1792992220973-8",
       "ip": "152.89.198.187",
       "country": "HK",
       "sourceCoord": [
-        115.00994485275407,
-        22.87139909500177
+        113.05873772282976,
+        23.330402388190215
       ],
       "targetCoord": [
-        -47.31155317696867,
-        -23.25248779027705
+        -47.74832920431325,
+        -24.961626938294803
       ],
       "targetHub": "BR-SaoPaulo",
       "targetCountry": "BR",
       "reports": 41332,
       "targets": 477,
-      "port": null,
-      "attackType": "Atividade suspeita",
-      "category": "other",
-      "color": "#94a3b8",
+      "port": 23,
+      "attackType": "Telnet / IoT Botnet",
+      "category": "remote",
+      "color": "#ff3366",
       "threatTags": [
         {
           "key": "ciarmy",
@@ -311,25 +473,25 @@
       ]
     },
     {
-      "id": "185.122.204.71-1792975211367-9",
+      "id": "185.122.204.71-1792992221502-9",
       "ip": "185.122.204.71",
       "country": "HK",
       "sourceCoord": [
-        112.74970112542137,
-        22.402186943686804
+        112.85925190807707,
+        23.379416086224442
       ],
       "targetCoord": [
-        152.1731077156845,
-        -34.34609136396669
+        150.73679378902494,
+        -33.525919404441446
       ],
       "targetHub": "AU-Sydney",
       "targetCountry": "AU",
       "reports": 41221,
       "targets": 479,
-      "port": null,
-      "attackType": "Atividade suspeita",
-      "category": "other",
-      "color": "#94a3b8",
+      "port": 22,
+      "attackType": "SSH Brute-force",
+      "category": "remote",
+      "color": "#ff3366",
       "threatTags": [
         {
           "key": "ciarmy",
@@ -339,25 +501,25 @@
       ]
     },
     {
-      "id": "176.113.115.104-1792975211934-10",
+      "id": "176.113.115.104-1792992222092-10",
       "ip": "176.113.115.104",
       "country": "HK",
       "sourceCoord": [
-        114.7761158887011,
-        20.87311030714578
+        113.86451792744948,
+        23.137544116907605
       ],
       "targetCoord": [
-        -78.95235248474269,
-        44.5042679775285
+        -79.02660637823318,
+        44.66194364144218
       ],
       "targetHub": "CA-Toronto",
       "targetCountry": "CA",
       "reports": 41164,
       "targets": 486,
-      "port": null,
-      "attackType": "Atividade suspeita",
-      "category": "other",
-      "color": "#94a3b8",
+      "port": 443,
+      "attackType": "HTTPS Scan",
+      "category": "web",
+      "color": "#33e0ff",
       "threatTags": [
         {
           "key": "blocklistde443",
@@ -377,25 +539,25 @@
       ]
     },
     {
-      "id": "91.240.118.59-1792975212703-11",
+      "id": "91.240.118.59-1792992222617-11",
       "ip": "91.240.118.59",
       "country": "HK",
       "sourceCoord": [
-        115.65504872931021,
-        22.769909048342686
+        114.85336198567697,
+        23.69462286245705
       ],
       "targetCoord": [
-        126.3827454035692,
-        36.78761674461996
+        128.15584668834958,
+        37.06417875519072
       ],
       "targetHub": "KR-Seoul",
       "targetCountry": "KR",
       "reports": 41148,
       "targets": 476,
-      "port": null,
-      "attackType": "Atividade suspeita",
-      "category": "other",
-      "color": "#94a3b8",
+      "port": 8080,
+      "attackType": "HTTP Proxy Scan",
+      "category": "web",
+      "color": "#33e0ff",
       "threatTags": [
         {
           "key": "ciarmy",
@@ -405,23 +567,23 @@
       ]
     },
     {
-      "id": "62.204.41.205-1792975213261-12",
+      "id": "62.204.41.205-1792992223138-12",
       "ip": "62.204.41.205",
       "country": "RU",
       "sourceCoord": [
-        99.86517608765375,
-        59.05733242090938
+        100.28446619425404,
+        59.50626580494407
       ],
       "targetCoord": [
-        -75.88552725985559,
-        38.13749909659605
+        -75.78147957111972,
+        39.258667124902615
       ],
       "targetHub": "US-Washington",
       "targetCountry": "US",
       "reports": 41094,
       "targets": 477,
-      "port": null,
-      "attackType": "Atividade suspeita",
+      "port": 9000,
+      "attackType": "Varredura porta 9000",
       "category": "other",
       "color": "#94a3b8",
       "threatTags": [
@@ -433,25 +595,25 @@
       ]
     },
     {
-      "id": "152.89.198.61-1792975213861-13",
+      "id": "152.89.198.61-1792992223675-13",
       "ip": "152.89.198.61",
       "country": "HK",
       "sourceCoord": [
-        113.91164510853207,
-        21.15377577979838
+        115.02411168786553,
+        22.05567457485861
       ],
       "targetCoord": [
-        7.406181871470236,
-        50.641383379006605
+        7.293088239496475,
+        51.48074955645442
       ],
       "targetHub": "DE-Frankfurt",
       "targetCountry": "DE",
       "reports": 40959,
       "targets": 484,
-      "port": null,
-      "attackType": "Atividade suspeita",
-      "category": "other",
-      "color": "#94a3b8",
+      "port": 80,
+      "attackType": "HTTP Scan",
+      "category": "web",
+      "color": "#33e0ff",
       "threatTags": [
         {
           "key": "ciarmy",
@@ -461,25 +623,25 @@
       ]
     },
     {
-      "id": "62.233.50.245-1792975214415-14",
+      "id": "62.233.50.245-1792992224226-14",
       "ip": "62.233.50.245",
       "country": "HK",
       "sourceCoord": [
-        114.3697386843136,
-        21.786501013885182
+        113.63691964155646,
+        20.896525435351535
       ],
       "targetCoord": [
-        5.518856583297635,
-        52.92170832920128
+        3.765307308052903,
+        52.26498629116995
       ],
       "targetHub": "NL-Amsterdam",
       "targetCountry": "NL",
       "reports": 40869,
       "targets": 472,
-      "port": null,
-      "attackType": "Atividade suspeita",
-      "category": "other",
-      "color": "#94a3b8",
+      "port": 22,
+      "attackType": "SSH Brute-force",
+      "category": "remote",
+      "color": "#ff3366",
       "threatTags": [
         {
           "key": "ciarmy",
@@ -489,25 +651,25 @@
       ]
     },
     {
-      "id": "185.81.68.110-1792975214969-15",
+      "id": "185.81.68.110-1792992224800-15",
       "ip": "185.81.68.110",
       "country": "HK",
       "sourceCoord": [
-        114.29965949286978,
-        22.703622684566497
+        114.28456545085794,
+        23.42171244937418
       ],
       "targetCoord": [
-        -1.5219201558671944,
-        50.71479675434733
+        -0.06096711582254921,
+        50.6671985624846
       ],
       "targetHub": "GB-London",
       "targetCountry": "GB",
       "reports": 40860,
       "targets": 481,
-      "port": null,
-      "attackType": "Atividade suspeita",
-      "category": "other",
-      "color": "#94a3b8",
+      "port": 443,
+      "attackType": "HTTPS Scan",
+      "category": "web",
+      "color": "#33e0ff",
       "threatTags": [
         {
           "key": "ciarmy",
@@ -517,25 +679,25 @@
       ]
     },
     {
-      "id": "152.89.198.153-1792975215539-16",
+      "id": "152.89.198.153-1792992225333-16",
       "ip": "152.89.198.153",
       "country": "HK",
       "sourceCoord": [
-        113.99003797539442,
-        21.223167157707515
+        115.66007294518568,
+        22.13274722438812
       ],
       "targetCoord": [
-        3.155432159406116,
-        47.80842663976773
+        1.0446795939563918,
+        49.71587168082808
       ],
       "targetHub": "FR-Paris",
       "targetCountry": "FR",
       "reports": 40261,
       "targets": 481,
-      "port": null,
-      "attackType": "Atividade suspeita",
-      "category": "other",
-      "color": "#94a3b8",
+      "port": 2222,
+      "attackType": "SSH Scan (porta alt.)",
+      "category": "remote",
+      "color": "#ff3366",
       "threatTags": [
         {
           "key": "ciarmy",
@@ -545,53 +707,53 @@
       ]
     },
     {
-      "id": "89.248.163.108-1792975217747-17",
+      "id": "89.248.163.108-1792992227282-17",
       "ip": "89.248.163.108",
       "country": "SC",
       "sourceCoord": [
-        56.73325716934808,
-        -5.096097785528621
+        56.65483639489709,
+        -5.265854195805591
       ],
       "targetCoord": [
-        141.1154998433683,
-        36.88933555065663
+        139.3264723240231,
+        34.59824508625795
       ],
       "targetHub": "JP-Tokyo",
       "targetCountry": "JP",
       "reports": 34020,
       "targets": 7896,
-      "port": null,
-      "attackType": "Atividade suspeita",
-      "category": "other",
-      "color": "#94a3b8",
+      "port": 8000,
+      "attackType": "HTTP Alt Scan",
+      "category": "web",
+      "color": "#33e0ff",
       "threatTags": [
         {
           "key": "recyber",
           "label": "ReCyber — lista de ameacas",
-          "lastSeen": "2026-10-25"
+          "lastSeen": "2026-10-26"
         }
       ]
     },
     {
-      "id": "49.88.112.67-1792975218285-18",
+      "id": "49.88.112.67-1792992227896-18",
       "ip": "49.88.112.67",
       "country": "CN",
       "sourceCoord": [
-        104.69179146804048,
-        33.83895669657946
+        104.17281337405753,
+        35.66079476730816
       ],
       "targetCoord": [
-        103.9251558055694,
-        2.3902290702141897
+        105.01139339676301,
+        -0.11983502894756048
       ],
       "targetHub": "SG-Singapore",
       "targetCountry": "SG",
       "reports": 32881,
       "targets": 106,
-      "port": null,
-      "attackType": "Atividade suspeita",
-      "category": "other",
-      "color": "#94a3b8",
+      "port": 8080,
+      "attackType": "HTTP Proxy Scan",
+      "category": "web",
+      "color": "#33e0ff",
       "threatTags": [
         {
           "key": "blocklistde22",
@@ -613,76 +775,76 @@
   ],
   "cves": [
     {
-      "id": "CVE-2026-56386",
-      "published": "2026-10-21T12:17:21.410",
+      "id": "CVE-2026-113787",
+      "published": "2026-10-21T16:17:26.270",
+      "severity": "MEDIUM",
+      "score": 6.1,
+      "color": "#ffd166",
+      "summary": "odf-kit allows users to generate, fill, read, and convert OpenDocument Format files (.odt, .ods) in TypeScript and JavaScript. Starting in version 0.6.0 and ...",
+      "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-113787"
+    },
+    {
+      "id": "CVE-2026-102486",
+      "published": "2026-10-21T16:17:14.313",
       "severity": "HIGH",
       "score": 7.5,
       "color": "#ff8c42",
-      "summary": "Integer underflow and out-of-bounds read in the HTTP/2 server DATA frame parser in Apache bRPC allows an unauthenticated remote attacker to cause denial of s...",
-      "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-56386"
+      "summary": "Out-of-bounds read in NTS extension field parsing in NTPsec ntpd 1.1.4 through 1.2.5 allows a remote attacker to crash the daemon via an NTS Authenticator an...",
+      "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-102486"
     },
     {
-      "id": "CVE-2026-114242",
-      "published": "2026-10-21T12:17:19.560",
-      "severity": "HIGH",
-      "score": 7.3,
-      "color": "#ff8c42",
-      "summary": "A vulnerability was identified in dhikshitha29 Insurance-Management-System 91de5edda5baa109ad8e9baf03ce6a3ceda84183/125362cc21dca20d74091a4913a5096bb58dd837....",
-      "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-114242"
+      "id": "CVE-2026-102485",
+      "published": "2026-10-21T16:17:14.187",
+      "severity": "MEDIUM",
+      "score": 5.2,
+      "color": "#ffd166",
+      "summary": "Out-of-bounds read in the Motorola Oncore refclock driver in NTPsec ntpd before 1.2.6 allows an attacker who controls the GPS receiver's serial data to crash...",
+      "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-102485"
     },
     {
-      "id": "CVE-2026-87096",
-      "published": "2026-10-21T11:17:09.600",
-      "severity": "LOW",
-      "score": 3.3,
-      "color": "#4ade80",
-      "summary": "Sensitive information disclosure and manipulation due to improper authorization checks. The following products are affected: Acronis Cyber Infrastructure (AC...",
-      "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-87096"
+      "id": "CVE-2026-102484",
+      "published": "2026-10-21T16:17:14.043",
+      "severity": "MEDIUM",
+      "score": 6.4,
+      "color": "#ffd166",
+      "summary": "Heap-based buffer overflow in the JJY refclock driver in NTPsec ntpd before 1.2.6 allows an attacker who controls the Telephone JJY time source to corrupt me...",
+      "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-102484"
     },
     {
-      "id": "CVE-2026-87095",
-      "published": "2026-10-21T11:17:09.463",
-      "severity": "CRITICAL",
-      "score": 9.1,
-      "color": "#ff3366",
-      "summary": "Sensitive information disclosure and manipulation due to improper authorization checks. The following products are affected: Acronis Cyber Infrastructure (AC...",
-      "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-87095"
-    },
-    {
-      "id": "CVE-2026-110884",
-      "published": "2026-10-21T10:16:55.520",
-      "severity": "HIGH",
-      "score": 7.1,
-      "color": "#ff8c42",
-      "summary": "Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting') vulnerability in geekontheroad Live Summary for Gravity Forms live-summa...",
-      "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-110884"
-    },
-    {
-      "id": "CVE-2026-110370",
-      "published": "2026-10-21T10:16:55.380",
-      "severity": "HIGH",
-      "score": 8.8,
-      "color": "#ff8c42",
-      "summary": "Deserialization of Untrusted Data vulnerability in GS Plugins GS Pins for Pinterest gs-pinterest-portfolio allows Object Injection.This issue affects GS Pins...",
-      "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-110370"
-    },
-    {
-      "id": "CVE-2026-110369",
-      "published": "2026-10-21T10:16:55.200",
-      "severity": "HIGH",
-      "score": 8.8,
-      "color": "#ff8c42",
-      "summary": "Deserialization of Untrusted Data vulnerability in GS Plugins WordPress Team Members – GS Plugins gs-team-members allows Object Injection.This issue affects ...",
-      "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-110369"
-    },
-    {
-      "id": "CVE-2026-97206",
-      "published": "2026-10-21T09:17:08.473",
+      "id": "CVE-2026-102483",
+      "published": "2026-10-21T16:17:13.910",
       "severity": "HIGH",
       "score": 7.5,
       "color": "#ff8c42",
-      "summary": "NLnet Labs Unbound, 1.22.0 up to and including version 1.26.1, contains a DNS-over-QUIC (DoQ) lifetime bug reachable by a remote DoQ client under multi-threa...",
-      "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-97206"
+      "summary": "Reachable exit in NTPsec ntpd 1.1.4 through 1.2.5 allows a remote attacker to terminate the daemon via an NTS request with excess NTS Cookie Placeholder exte...",
+      "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-102483"
+    },
+    {
+      "id": "CVE-2026-98869",
+      "published": "2026-10-21T15:17:19.827",
+      "severity": "HIGH",
+      "score": 7.8,
+      "color": "#ff8c42",
+      "summary": "In the Linux kernel, the following vulnerability has been resolved:\n\nbpf: Infer zext_dst based on static register liveness analysis\n\nAs reported in the threa...",
+      "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-98869"
+    },
+    {
+      "id": "CVE-2026-114252",
+      "published": "2026-10-21T15:17:17.233",
+      "severity": "MEDIUM",
+      "score": 6.3,
+      "color": "#ffd166",
+      "summary": "A vulnerability was found in itsourcecode Sales-and-Inventory-System up to 0a3c45a78aaff3601b8cf9ce8ba82ff5c345caac. The affected element is an unknown funct...",
+      "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-114252"
+    },
+    {
+      "id": "CVE-2026-114251",
+      "published": "2026-10-21T15:17:17.043",
+      "severity": "MEDIUM",
+      "score": 6.3,
+      "color": "#ffd166",
+      "summary": "A vulnerability has been found in itsourcecode Sales-and-Inventory-System up to 0a3c45a78aaff3601b8cf9ce8ba82ff5c345caac. Impacted is an unknown function of ...",
+      "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-114251"
     }
   ],
   "countryRanking": [
