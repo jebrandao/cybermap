@@ -1,19 +1,181 @@
 {
-  "generatedAt": "2026-11-02T01:51:37.629Z",
+  "generatedAt": "2026-11-02T09:11:42.638Z",
   "source": "SANS Internet Storm Center / DShield (isc.sans.edu)",
   "portAttributionNote": "A porta/tipo de ataque de cada evento e sorteada com peso pela distribuicao agregada de topports do dia; a API nao associa porta a um IP atacante especifico.",
   "threatTagsNote": "As tags de ameaca (quando presentes) vem do campo threatfeeds da API do DShield -- sao listas de reputacao de terceiros que ja flagraram aquele IP especifico. E dado real, nao inferido; a maioria dos IPs nao tem nenhuma tag.",
   "portProtocolNote": "tcpPct/udpPct vem do campo tcp/udp de api/port/{porta} do DShield. Nao somam exatamente 100 (parte do trafego fica sem protocolo classificado); nao sao uma contagem de registros, sao a proporcao reportada pela API.",
-  "totalRecordsToday": 0,
+  "totalRecordsToday": 893571,
   "portsDate": "2026-11-02",
   "totalRecordsNote": "Soma dos registros (records) das 50 portas mais reportadas no dia pela API topports do DShield. Nao e o total absoluto de todos os ataques da internet -- e uma amostra real considerável, nao uma estimativa inventada.",
   "cveNote": "Lista informativa de CVEs publicados recentemente (fonte: NVD/NIST), sem relacao direta com os eventos de ataque exibidos no mapa.",
   "countryRankingNote": "Ranking baseado no volume de registros dos eventos coletados, agrupado pelo pais dos hubs de destino estilizados -- nao reflete vitimas reais por pais.",
-  "ports": [],
+  "ports": [
+    {
+      "port": 22,
+      "records": 221819,
+      "targets": 273,
+      "sources": 5564,
+      "tcpPct": 88,
+      "udpPct": 0
+    },
+    {
+      "port": 23,
+      "records": 163609,
+      "targets": 266,
+      "sources": 6948,
+      "tcpPct": 98,
+      "udpPct": 0
+    },
+    {
+      "port": 2222,
+      "records": 67646,
+      "targets": 234,
+      "sources": 3324,
+      "tcpPct": 100,
+      "udpPct": 0
+    },
+    {
+      "port": 443,
+      "records": 40382,
+      "targets": 234,
+      "sources": 4650,
+      "tcpPct": 89,
+      "udpPct": 2
+    },
+    {
+      "port": 80,
+      "records": 35555,
+      "targets": 228,
+      "sources": 3218,
+      "tcpPct": 94,
+      "udpPct": 0
+    },
+    {
+      "port": 7680,
+      "records": 32291,
+      "targets": 30,
+      "sources": 1981,
+      "tcpPct": 99,
+      "udpPct": 0
+    },
+    {
+      "port": 8080,
+      "records": 29736,
+      "targets": 248,
+      "sources": 2239,
+      "tcpPct": 98,
+      "udpPct": 0
+    },
+    {
+      "port": 60437,
+      "records": 28657,
+      "targets": 5,
+      "sources": 694,
+      "tcpPct": 0,
+      "udpPct": 100
+    },
+    {
+      "port": 8000,
+      "records": 24865,
+      "targets": 249,
+      "sources": 2019,
+      "tcpPct": 99,
+      "udpPct": 0
+    },
+    {
+      "port": 137,
+      "records": 22753,
+      "targets": 170,
+      "sources": 501,
+      "tcpPct": 1,
+      "udpPct": 99
+    }
+  ],
   "portsHistory": {
     "today": {
       "date": "2026-11-02",
-      "ports": []
+      "ports": [
+        {
+          "port": 22,
+          "records": 221819,
+          "targets": 273,
+          "sources": 5564,
+          "tcpPct": 88,
+          "udpPct": 0
+        },
+        {
+          "port": 23,
+          "records": 163609,
+          "targets": 266,
+          "sources": 6948,
+          "tcpPct": 98,
+          "udpPct": 0
+        },
+        {
+          "port": 2222,
+          "records": 67646,
+          "targets": 234,
+          "sources": 3324,
+          "tcpPct": 100,
+          "udpPct": 0
+        },
+        {
+          "port": 443,
+          "records": 40382,
+          "targets": 234,
+          "sources": 4650,
+          "tcpPct": 89,
+          "udpPct": 2
+        },
+        {
+          "port": 80,
+          "records": 35555,
+          "targets": 228,
+          "sources": 3218,
+          "tcpPct": 94,
+          "udpPct": 0
+        },
+        {
+          "port": 7680,
+          "records": 32291,
+          "targets": 30,
+          "sources": 1981,
+          "tcpPct": 99,
+          "udpPct": 0
+        },
+        {
+          "port": 8080,
+          "records": 29736,
+          "targets": 248,
+          "sources": 2239,
+          "tcpPct": 98,
+          "udpPct": 0
+        },
+        {
+          "port": 60437,
+          "records": 28657,
+          "targets": 5,
+          "sources": 694,
+          "tcpPct": 0,
+          "udpPct": 100
+        },
+        {
+          "port": 8000,
+          "records": 24865,
+          "targets": 249,
+          "sources": 2019,
+          "tcpPct": 99,
+          "udpPct": 0
+        },
+        {
+          "port": 137,
+          "records": 22753,
+          "targets": 170,
+          "sources": 501,
+          "tcpPct": 1,
+          "udpPct": 99
+        }
+      ]
     },
     "week_ago": {
       "date": "2026-10-26",
@@ -83,91 +245,91 @@
   },
   "events": [
     {
-      "id": "13.94.254.200-1793584285447-0",
+      "id": "13.94.254.200-1793610690882-0",
       "ip": "13.94.254.200",
       "country": "US",
       "sourceCoord": [
-        -95.59839090366012,
-        37.39419995016261
+        -96.8307194672192,
+        37.01211247125613
       ],
       "targetCoord": [
-        -78.47593784312464,
-        39.08131117104315
+        -78.4884047855264,
+        39.722627757749144
       ],
       "targetHub": "US-Washington",
       "targetCountry": "US",
       "reports": 319739,
       "targets": 1,
-      "port": null,
-      "attackType": "Atividade suspeita",
-      "category": "other",
-      "color": "#94a3b8",
+      "port": 8080,
+      "attackType": "HTTP Proxy Scan",
+      "category": "web",
+      "color": "#33e0ff",
       "threatTags": []
     },
     {
-      "id": "194.224.249.214-1793584285987-1",
+      "id": "194.224.249.214-1793610691445-1",
       "ip": "194.224.249.214",
       "country": "ES",
       "sourceCoord": [
-        -3.2480225696122953,
-        41.091358150981996
+        -4.334004178742788,
+        41.25955308597817
       ],
       "targetCoord": [
-        9.829467109391473,
-        51.014449443477645
+        8.056429949145386,
+        51.47605417700967
       ],
       "targetHub": "DE-Frankfurt",
       "targetCountry": "DE",
       "reports": 309508,
       "targets": 1,
-      "port": null,
-      "attackType": "Atividade suspeita",
-      "category": "other",
-      "color": "#94a3b8",
+      "port": 23,
+      "attackType": "Telnet / IoT Botnet",
+      "category": "remote",
+      "color": "#ff3366",
       "threatTags": []
     },
     {
-      "id": "52.157.207.201-1793584286514-2",
+      "id": "52.157.207.201-1793610691974-2",
       "ip": "52.157.207.201",
       "country": "US",
       "sourceCoord": [
-        -96.48620121988156,
-        38.43553880398212
+        -96.93882982718176,
+        39.244502489330685
       ],
       "targetCoord": [
-        5.582731165580364,
-        53.076531633344956
+        5.909408494211263,
+        52.66601453988386
       ],
       "targetHub": "NL-Amsterdam",
       "targetCountry": "NL",
       "reports": 194780,
       "targets": 1,
-      "port": null,
-      "attackType": "Atividade suspeita",
-      "category": "other",
-      "color": "#94a3b8",
+      "port": 23,
+      "attackType": "Telnet / IoT Botnet",
+      "category": "remote",
+      "color": "#ff3366",
       "threatTags": []
     },
     {
-      "id": "89.248.163.109-1793584287043-3",
+      "id": "89.248.163.109-1793610692518-3",
       "ip": "89.248.163.109",
       "country": "SC",
       "sourceCoord": [
-        57.04180623635632,
-        -4.187609542623878
+        56.12298040734348,
+        -5.832597844508841
       ],
       "targetCoord": [
-        0.4628303832757733,
-        52.43329497301129
+        -0.9195498659340963,
+        50.47057822350146
       ],
       "targetHub": "GB-London",
       "targetCountry": "GB",
       "reports": 96279,
       "targets": 150,
-      "port": null,
-      "attackType": "Atividade suspeita",
-      "category": "other",
-      "color": "#94a3b8",
+      "port": 443,
+      "attackType": "HTTPS Scan",
+      "category": "web",
+      "color": "#33e0ff",
       "threatTags": [
         {
           "key": "recyber",
@@ -177,25 +339,25 @@
       ]
     },
     {
-      "id": "143.244.186.35-1793584287592-4",
+      "id": "143.244.186.35-1793610693067-4",
       "ip": "143.244.186.35",
       "country": "US",
       "sourceCoord": [
-        -98.31976683729812,
-        36.58271888828061
+        -97.49563664677571,
+        38.84450122499479
       ],
       "targetCoord": [
-        0.8642246615341567,
-        48.663378132643096
+        2.0599008484775334,
+        47.65966809051684
       ],
       "targetHub": "FR-Paris",
       "targetCountry": "FR",
       "reports": 92007,
       "targets": 8,
-      "port": null,
-      "attackType": "Atividade suspeita",
-      "category": "other",
-      "color": "#94a3b8",
+      "port": 22,
+      "attackType": "SSH Brute-force",
+      "category": "remote",
+      "color": "#ff3366",
       "threatTags": [
         {
           "key": "ciarmy",
@@ -205,47 +367,47 @@
       ]
     },
     {
-      "id": "18.116.198.191-1793584288110-5",
+      "id": "18.116.198.191-1793610693583-5",
       "ip": "18.116.198.191",
       "country": "US",
       "sourceCoord": [
-        -97.95373085060766,
-        36.94131364494377
+        -96.5955150969959,
+        38.5684603750128
       ],
       "targetCoord": [
-        139.54093515056232,
-        34.77919848359254
+        140.4575237033595,
+        34.86654404684481
       ],
       "targetHub": "JP-Tokyo",
       "targetCountry": "JP",
       "reports": 59907,
       "targets": 1,
-      "port": null,
-      "attackType": "Atividade suspeita",
-      "category": "other",
-      "color": "#94a3b8",
+      "port": 2222,
+      "attackType": "SSH Scan (porta alt.)",
+      "category": "remote",
+      "color": "#ff3366",
       "threatTags": []
     },
     {
-      "id": "152.89.198.163-1793584288656-6",
+      "id": "152.89.198.163-1793610694140-6",
       "ip": "152.89.198.163",
       "country": "HK",
       "sourceCoord": [
-        114.21743268822553,
-        23.645175949992478
+        115.11041310530698,
+        22.85552617352709
       ],
       "targetCoord": [
-        103.90195934709924,
-        2.6069015959464403
+        103.72213729510074,
+        1.5807212364625678
       ],
       "targetHub": "SG-Singapore",
       "targetCountry": "SG",
       "reports": 41378,
       "targets": 478,
-      "port": null,
-      "attackType": "Atividade suspeita",
-      "category": "other",
-      "color": "#94a3b8",
+      "port": 22,
+      "attackType": "SSH Brute-force",
+      "category": "remote",
+      "color": "#ff3366",
       "threatTags": [
         {
           "key": "ciarmy",
@@ -255,25 +417,25 @@
       ]
     },
     {
-      "id": "152.89.198.103-1793584289186-7",
+      "id": "152.89.198.103-1793610694679-7",
       "ip": "152.89.198.103",
       "country": "HK",
       "sourceCoord": [
-        112.96889790737147,
-        23.515105199382372
+        113.55023715333587,
+        20.923662214398938
       ],
       "targetCoord": [
-        73.88380319098499,
-        18.134342531218934
+        71.58182347384955,
+        18.313591009392717
       ],
       "targetHub": "IN-Mumbai",
       "targetCountry": "IN",
       "reports": 41346,
       "targets": 479,
-      "port": null,
-      "attackType": "Atividade suspeita",
-      "category": "other",
-      "color": "#94a3b8",
+      "port": 22,
+      "attackType": "SSH Brute-force",
+      "category": "remote",
+      "color": "#ff3366",
       "threatTags": [
         {
           "key": "ciarmy",
@@ -283,23 +445,23 @@
       ]
     },
     {
-      "id": "152.89.198.187-1793584289738-8",
+      "id": "152.89.198.187-1793610695221-8",
       "ip": "152.89.198.187",
       "country": "HK",
       "sourceCoord": [
-        113.6219300543207,
-        23.0732736897701
+        114.11573223348599,
+        22.906248066075246
       ],
       "targetCoord": [
-        -45.856888552497445,
-        -22.3596693000047
+        -47.94373855368319,
+        -23.11532510114096
       ],
       "targetHub": "BR-SaoPaulo",
       "targetCountry": "BR",
       "reports": 41332,
       "targets": 477,
-      "port": null,
-      "attackType": "Atividade suspeita",
+      "port": 60437,
+      "attackType": "Varredura porta 60437",
       "category": "other",
       "color": "#94a3b8",
       "threatTags": [
@@ -311,25 +473,25 @@
       ]
     },
     {
-      "id": "185.122.204.71-1793584290275-9",
+      "id": "185.122.204.71-1793610695766-9",
       "ip": "185.122.204.71",
       "country": "HK",
       "sourceCoord": [
-        115.43840536212525,
-        21.759712148821023
+        113.23892384142826,
+        21.445803502674693
       ],
       "targetCoord": [
-        151.96436681279073,
-        -32.395613518583815
+        151.320998257424,
+        -33.43160327700777
       ],
       "targetHub": "AU-Sydney",
       "targetCountry": "AU",
       "reports": 41221,
       "targets": 479,
-      "port": null,
-      "attackType": "Atividade suspeita",
-      "category": "other",
-      "color": "#94a3b8",
+      "port": 23,
+      "attackType": "Telnet / IoT Botnet",
+      "category": "remote",
+      "color": "#ff3366",
       "threatTags": [
         {
           "key": "ciarmy",
@@ -339,25 +501,25 @@
       ]
     },
     {
-      "id": "176.113.115.104-1793584290829-10",
+      "id": "176.113.115.104-1793610696321-10",
       "ip": "176.113.115.104",
       "country": "HK",
       "sourceCoord": [
-        115.53879508106509,
-        23.48711646051338
+        113.89362083093356,
+        21.155015389561022
       ],
       "targetCoord": [
-        -77.88614909250946,
-        43.70288192430045
+        -79.3763072133073,
+        44.0567294653153
       ],
       "targetHub": "CA-Toronto",
       "targetCountry": "CA",
       "reports": 41164,
       "targets": 486,
-      "port": null,
-      "attackType": "Atividade suspeita",
-      "category": "other",
-      "color": "#94a3b8",
+      "port": 8000,
+      "attackType": "HTTP Alt Scan",
+      "category": "web",
+      "color": "#33e0ff",
       "threatTags": [
         {
           "key": "blocklistde443",
@@ -377,23 +539,23 @@
       ]
     },
     {
-      "id": "91.240.118.59-1793584291368-11",
+      "id": "91.240.118.59-1793610696871-11",
       "ip": "91.240.118.59",
       "country": "HK",
       "sourceCoord": [
-        113.81246968824281,
-        22.293974921899476
+        115.43229591627099,
+        22.51391762474309
       ],
       "targetCoord": [
-        128.43049684657623,
-        38.17557906257781
+        126.31920570179612,
+        38.3367348662547
       ],
       "targetHub": "KR-Seoul",
       "targetCountry": "KR",
       "reports": 41148,
       "targets": 476,
-      "port": null,
-      "attackType": "Atividade suspeita",
+      "port": 7680,
+      "attackType": "Varredura porta 7680",
       "category": "other",
       "color": "#94a3b8",
       "threatTags": [
@@ -405,25 +567,25 @@
       ]
     },
     {
-      "id": "62.204.41.205-1793584291898-12",
+      "id": "62.204.41.205-1793610697408-12",
       "ip": "62.204.41.205",
       "country": "RU",
       "sourceCoord": [
-        99.4070630144091,
-        58.895481302576385
+        99.9699752863115,
+        58.97951289070136
       ],
       "targetCoord": [
-        -77.33464278136378,
-        38.07701369311258
+        -76.99203428322889,
+        39.06842481259945
       ],
       "targetHub": "US-Washington",
       "targetCountry": "US",
       "reports": 41094,
       "targets": 477,
-      "port": null,
-      "attackType": "Atividade suspeita",
-      "category": "other",
-      "color": "#94a3b8",
+      "port": 2222,
+      "attackType": "SSH Scan (porta alt.)",
+      "category": "remote",
+      "color": "#ff3366",
       "threatTags": [
         {
           "key": "ciarmy",
@@ -433,25 +595,25 @@
       ]
     },
     {
-      "id": "152.89.198.61-1793584292437-13",
+      "id": "152.89.198.61-1793610697949-13",
       "ip": "152.89.198.61",
       "country": "HK",
       "sourceCoord": [
-        114.68048145580619,
-        23.692304919095438
+        112.82989747886236,
+        21.00421188548809
       ],
       "targetCoord": [
-        7.575182172936348,
-        49.88873016850856
+        9.166178884310993,
+        49.74255519870327
       ],
       "targetHub": "DE-Frankfurt",
       "targetCountry": "DE",
       "reports": 40959,
       "targets": 484,
-      "port": null,
-      "attackType": "Atividade suspeita",
-      "category": "other",
-      "color": "#94a3b8",
+      "port": 443,
+      "attackType": "HTTPS Scan",
+      "category": "web",
+      "color": "#33e0ff",
       "threatTags": [
         {
           "key": "ciarmy",
@@ -461,25 +623,25 @@
       ]
     },
     {
-      "id": "62.233.50.245-1793584292967-14",
+      "id": "62.233.50.245-1793610698481-14",
       "ip": "62.233.50.245",
       "country": "HK",
       "sourceCoord": [
-        113.57115523785264,
-        22.77387547355301
+        114.8710247067516,
+        22.070363164269914
       ],
       "targetCoord": [
-        5.74453433386824,
-        51.32983908198429
+        5.254585275797309,
+        51.60445563740722
       ],
       "targetHub": "NL-Amsterdam",
       "targetCountry": "NL",
       "reports": 40869,
       "targets": 472,
-      "port": null,
-      "attackType": "Atividade suspeita",
-      "category": "other",
-      "color": "#94a3b8",
+      "port": 23,
+      "attackType": "Telnet / IoT Botnet",
+      "category": "remote",
+      "color": "#ff3366",
       "threatTags": [
         {
           "key": "ciarmy",
@@ -489,25 +651,25 @@
       ]
     },
     {
-      "id": "185.81.68.110-1793584293503-15",
+      "id": "185.81.68.110-1793610699030-15",
       "ip": "185.81.68.110",
       "country": "HK",
       "sourceCoord": [
-        113.73207836618471,
-        23.51850534454688
+        114.57203372772855,
+        21.0900563500629
       ],
       "targetCoord": [
-        -0.06875793891746251,
-        50.20605284829256
+        0.40981605162813184,
+        51.978866985545324
       ],
       "targetHub": "GB-London",
       "targetCountry": "GB",
       "reports": 40860,
       "targets": 481,
-      "port": null,
-      "attackType": "Atividade suspeita",
-      "category": "other",
-      "color": "#94a3b8",
+      "port": 80,
+      "attackType": "HTTP Scan",
+      "category": "web",
+      "color": "#33e0ff",
       "threatTags": [
         {
           "key": "ciarmy",
@@ -517,25 +679,25 @@
       ]
     },
     {
-      "id": "152.89.198.153-1793584294042-16",
+      "id": "152.89.198.153-1793610699583-16",
       "ip": "152.89.198.153",
       "country": "HK",
       "sourceCoord": [
-        114.69666636438696,
-        23.17207292308673
+        114.76727083551259,
+        20.949737112359614
       ],
       "targetCoord": [
-        2.6062868420662766,
-        47.73051938029088
+        2.8083906296989825,
+        49.349082934165175
       ],
       "targetHub": "FR-Paris",
       "targetCountry": "FR",
       "reports": 40261,
       "targets": 481,
-      "port": null,
-      "attackType": "Atividade suspeita",
-      "category": "other",
-      "color": "#94a3b8",
+      "port": 80,
+      "attackType": "HTTP Scan",
+      "category": "web",
+      "color": "#33e0ff",
       "threatTags": [
         {
           "key": "ciarmy",
@@ -545,25 +707,25 @@
       ]
     },
     {
-      "id": "89.248.163.108-1793584296036-17",
+      "id": "89.248.163.108-1793610701430-17",
       "ip": "89.248.163.108",
       "country": "SC",
       "sourceCoord": [
-        55.1596987117047,
-        -5.967438561491642
+        56.75923926742095,
+        -4.3961178809495305
       ],
       "targetCoord": [
-        141.00456661613538,
-        36.67257153667122
+        141.14140182752303,
+        35.445692983012755
       ],
       "targetHub": "JP-Tokyo",
       "targetCountry": "JP",
       "reports": 34020,
       "targets": 7896,
-      "port": null,
-      "attackType": "Atividade suspeita",
-      "category": "other",
-      "color": "#94a3b8",
+      "port": 22,
+      "attackType": "SSH Brute-force",
+      "category": "remote",
+      "color": "#ff3366",
       "threatTags": [
         {
           "key": "recyber",
@@ -573,25 +735,25 @@
       ]
     },
     {
-      "id": "49.88.112.67-1793584296571-18",
+      "id": "49.88.112.67-1793610701952-18",
       "ip": "49.88.112.67",
       "country": "CN",
       "sourceCoord": [
-        106.3254675271755,
-        33.96262133515631
+        104.81284592140167,
+        35.86775930523908
       ],
       "targetCoord": [
-        103.5206653622986,
-        0.7883200646219872
+        104.71746587158262,
+        2.4636291682992666
       ],
       "targetHub": "SG-Singapore",
       "targetCountry": "SG",
       "reports": 32881,
       "targets": 106,
-      "port": null,
-      "attackType": "Atividade suspeita",
-      "category": "other",
-      "color": "#94a3b8",
+      "port": 23,
+      "attackType": "Telnet / IoT Botnet",
+      "category": "remote",
+      "color": "#ff3366",
       "threatTags": [
         {
           "key": "blocklistde22",
