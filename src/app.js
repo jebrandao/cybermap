@@ -24,6 +24,12 @@
   let globeArcs = [];
   let globeRings = [];
 
+  // Tempo que os pontos de origem (azuis) e de impacto (vermelhos) levam
+  // para esmaecer ate sumir depois de acesos.
+  const FADE_MS = 5000;
+  const SOURCE_COLOR = "#33e0ff";
+  const IMPACT_COLOR = "#ff2d2d";
+
   const WIDTH = 960;
   const HEIGHT = 520;
   svg.attr("viewBox", `0 0 ${WIDTH} ${HEIGHT}`);
@@ -32,7 +38,6 @@
   const path = d3.geoPath(projection);
 
   const landLayer = svg.append("g").attr("class", "land-layer");
-  const hubLayer = svg.append("g").attr("class", "hub-layer");
   const arcLayer = svg.append("g").attr("class", "arc-layer");
   const dotLayer = svg.append("g").attr("class", "dot-layer");
 
@@ -155,10 +160,12 @@
       })
       .on("end", () => {
         impactPulse(ev.targetCoord, color);
+        lightImpactDot(ev);
         travelDot.remove();
       });
 
     impactPulse(ev.sourceCoord, color);
+    lightSourceDot(ev);
   }
 
   // Incremento proporcional ao valor atual (0.5%-2%, minimo 1) em vez de
@@ -407,32 +414,46 @@
     return [...hubs.values()];
   }
 
-  function renderHubs(hubs) {
-    hubLayer
-      .selectAll(".hub")
-      .data(hubs, (d) => d.name)
-      .join("circle")
-      .attr("class", "hub")
-      .attr("r", 5)
-      .attr("cx", (d) => projection(d.coord)[0])
-      .attr("cy", (d) => projection(d.coord)[1]);
+  function eventTooltipHtml(ev) {
+    return (
+      `<div class="attack-line">${flagSpan(ev.country)}<strong style="color:${ev.color || "#33e0ff"}">${ev.attackType || "?"}</strong></div>` +
+      `${countryName(ev.country)} &middot; ${ev.ip}${reportsHtml(ev)}${threatTagsHtml(ev.threatTags)}`
+    );
   }
 
-  function renderSourceDots(events) {
-    dotLayer
-      .selectAll(".source-dot")
-      .data(events, (d) => d.id)
-      .join("circle")
-      .attr("class", "source-dot")
-      .attr("r", 2.2)
-      .attr("cx", (d) => projection(d.sourceCoord)[0])
-      .attr("cy", (d) => projection(d.sourceCoord)[1])
-      .on("mousemove", (event, d) => {
-        showTooltip(
-          `<div class="attack-line">${flagSpan(d.country)}<strong style="color:${d.color || "#33e0ff"}">${d.attackType || "?"}</strong></div>` +
-            `${countryName(d.country)} &middot; ${d.ip}${reportsHtml(d)}${threatTagsHtml(d.threatTags)}`,
-          [event.offsetX, event.offsetY]
-        );
+  // Pontos temporarios: nascem acesos e esmaecem linearmente ate sumir.
+  // A origem acende quando o ataque parte; o ponto vermelho aparece no
+  // instante em que ele atinge o destino (substitui os hubs fixos).
+  function fadingDot(coord, className) {
+    const [x, y] = projection(coord);
+    return dotLayer
+      .append("circle")
+      .attr("class", className)
+      .attr("cx", x)
+      .attr("cy", y)
+      .attr("r", 3)
+      .attr("opacity", 1)
+      .transition()
+      .duration(FADE_MS)
+      .ease(d3.easeLinear)
+      .attr("opacity", 0)
+      .remove();
+  }
+
+  function lightSourceDot(ev) {
+    fadingDot(ev.sourceCoord, "source-dot")
+      .selection()
+      .on("mousemove", (event) => {
+        showTooltip(eventTooltipHtml(ev), [event.offsetX, event.offsetY]);
+      })
+      .on("mouseleave", hideTooltip);
+  }
+
+  function lightImpactDot(ev) {
+    fadingDot(ev.targetCoord, "impact-dot")
+      .selection()
+      .on("mousemove", (event) => {
+        showTooltip(countryName(ev.targetCountry), [event.offsetX, event.offsetY]);
       })
       .on("mouseleave", hideTooltip);
   }
@@ -462,25 +483,40 @@
     globeLibsLoaded = true;
   }
 
-  function buildGlobePoints(events) {
-    const points = events.map((ev) => ({
-      lat: ev.sourceCoord[1],
-      lng: ev.sourceCoord[0],
-      color: ev.color || "#33e0ff",
-      radius: 0.35,
-      altitude: 0.01,
-      label: `<div class="attack-line">${flagSpan(ev.country)}<strong style="color:${ev.color || "#33e0ff"}">${ev.attackType || "?"}</strong></div>${countryName(ev.country)} &middot; ${ev.ip}${reportsHtml(ev)}${threatTagsHtml(ev.threatTags)}`,
-    }));
+  // Pontos temporarios do globo (origem azul / impacto vermelho). O globe.gl
+  // nao anima opacidade sozinho, entao um timer curto recalcula o alfa de cada
+  // ponto a partir da idade e descarta os que ja esmaeceram por completo.
+  let globePoints = [];
+  let globeFadeTimer = null;
 
-    const hubPoints = hubList.map((h) => ({
-      lat: h.coord[1],
-      lng: h.coord[0],
-      color: "#7c88a6",
-      radius: 0.55,
+  function hexToRgba(hex, alpha) {
+    const n = parseInt(hex.slice(1), 16);
+    return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${alpha.toFixed(3)})`;
+  }
+
+  function fadedPointColor(p) {
+    const alpha = Math.max(0, 1 - (Date.now() - p.born) / FADE_MS);
+    return hexToRgba(p.baseColor, alpha);
+  }
+
+  function addGlobePoint(coord, baseColor, label) {
+    globePoints.push({
+      lat: coord[1],
+      lng: coord[0],
+      baseColor,
+      radius: 0.9,
       altitude: 0.012,
-      label: countryName(h.country),
-    }));
-    return points.concat(hubPoints);
+      label,
+      born: Date.now(),
+    });
+    globeInstance.pointsData([...globePoints]);
+  }
+
+  function tickGlobePoints() {
+    if (!globeInstance || !globePoints.length) return;
+    const now = Date.now();
+    globePoints = globePoints.filter((p) => now - p.born < FADE_MS);
+    globeInstance.pointsData([...globePoints]);
   }
 
   function resizeGlobe() {
@@ -489,7 +525,7 @@
     globeInstance.width(el.clientWidth).height(el.clientHeight);
   }
 
-  function initGlobe(events) {
+  function initGlobe() {
     const el = document.getElementById("globe");
     globeInstance = new Globe(el)
       .backgroundColor("rgba(0,0,0,0)")
@@ -503,10 +539,10 @@
       .polygonStrokeColor(() => "#232d4f")
       .polygonAltitude(0.005)
       .polygonsTransitionDuration(0)
-      .pointsData(buildGlobePoints(events))
+      .pointsData(globePoints)
       .pointLat("lat")
       .pointLng("lng")
-      .pointColor("color")
+      .pointColor(fadedPointColor)
       .pointRadius("radius")
       .pointAltitude("altitude")
       .pointLabel("label")
@@ -537,17 +573,13 @@
     resizeGlobe();
     window.addEventListener("resize", resizeGlobe);
 
+    globeFadeTimer = setInterval(tickGlobePoints, 100);
     globeInstance.pointOfView({ lat: 20, lng: 0, altitude: 2.2 }, 0);
     const controls = globeInstance.controls();
     controls.autoRotate = true;
     controls.autoRotateSpeed = 0.4;
     controls.enableZoom = true;
   }
-
-  // Cor neutra para o pulso de chegada no hub -- o hub e so um ponto de
-  // referencia ilustrativo, nao deve "emitir" a cor do tipo de ataque como
-  // se ele proprio fosse a origem ou o tipo do ataque.
-  const HUB_PULSE_COLOR = "#7c88a6";
 
   // Mesma ideia do fire2D (arco saindo da origem, pulso no impacto), so que
   // usando as propriedades reativas do globe.gl em vez de manipular SVG.
@@ -566,11 +598,13 @@
     const sourceRing = { lat: ev.sourceCoord[1], lng: ev.sourceCoord[0], color };
     globeRings.push(sourceRing);
     globeInstance.ringsData(globeRings);
+    addGlobePoint(ev.sourceCoord, SOURCE_COLOR, eventTooltipHtml(ev));
 
     setTimeout(() => {
-      const targetRing = { lat: ev.targetCoord[1], lng: ev.targetCoord[0], color: HUB_PULSE_COLOR };
+      const targetRing = { lat: ev.targetCoord[1], lng: ev.targetCoord[0], color: IMPACT_COLOR };
       globeRings.push(targetRing);
       globeInstance.ringsData(globeRings);
+      addGlobePoint(ev.targetCoord, IMPACT_COLOR, countryName(ev.targetCountry));
 
       globeArcs = globeArcs.filter((a) => a !== arc);
       globeInstance.arcsData(globeArcs);
@@ -598,7 +632,7 @@
       if (!globeLibsLoaded) loadingEl.classList.remove("hidden");
       try {
         await ensureGlobeLibs();
-        if (!globeInstance) initGlobe((liveData && liveData.events) || []);
+        if (!globeInstance) initGlobe();
       } finally {
         loadingEl.classList.add("hidden");
       }
@@ -717,8 +751,6 @@
       renderCountryRanking(countryRankingArray());
       renderLegend(data.categories || []);
       renderUpdateTime(data.generatedAt);
-      renderHubs(hubList);
-      renderSourceDots(data.events || []);
       startAnimationLoop(data.events || []);
     } catch (err) {
       updatedAtEl.textContent = "nao foi possivel carregar data/attacks.json";
