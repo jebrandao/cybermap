@@ -79,9 +79,30 @@
       .remove();
   }
 
+  // Sorteia um hub de destino a cada disparo (evitando o proprio pais da
+  // origem, pra o arco sempre atravessar o mapa). Sem isso cada IP atacaria
+  // sempre o mesmo hub e 19 eventos virariam 19 rotas fixas se repetindo.
+  // Os hubs ja sao ilustrativos, entao isso nao altera nenhum dado real.
+  function withRandomDestination(ev) {
+    if (!hubList.length) return ev;
+    const candidates = hubList.filter((h) => h.country !== ev.country);
+    const pool = candidates.length ? candidates : hubList;
+    const hub = pool[Math.floor(Math.random() * pool.length)];
+    return {
+      ...ev,
+      targetHub: hub.name,
+      targetCountry: hub.country,
+      targetCoord: [
+        hub.coord[0] + (Math.random() - 0.5) * 3,
+        hub.coord[1] + (Math.random() - 0.5) * 3,
+      ],
+    };
+  }
+
   // Ponto de entrada unico chamado pelo loop de animacao: atualiza os
   // paineis (sempre) e delega o efeito visual no mapa para o modo ativo.
-  function fireEvent(ev) {
+  function fireEvent(baseEvent) {
+    const ev = withRandomDestination(baseEvent);
     prependEventToList(ev);
     bumpCountryRanking(ev.targetCountry);
     if (viewMode === "3d") {
@@ -359,19 +380,31 @@
     });
   }
 
-  function renderHubs(events) {
+  // Fonte unica dos hubs de destino: o primeiro evento visto de cada hub
+  // define a posicao do marcador. Os hubs sao ilustrativos, entao o destino
+  // de cada disparo e sorteado entre eles em tempo de execucao (ver
+  // withRandomDestination) em vez de ficar preso ao hub gravado no JSON.
+  let hubList = [];
+
+  function buildHubList(events) {
     const hubs = new Map();
     for (const ev of events) {
-      if (!hubs.has(ev.targetHub)) hubs.set(ev.targetHub, ev.targetCoord);
+      if (ev.targetHub && !hubs.has(ev.targetHub)) {
+        hubs.set(ev.targetHub, { name: ev.targetHub, coord: ev.targetCoord, country: ev.targetCountry });
+      }
     }
+    return [...hubs.values()];
+  }
+
+  function renderHubs(hubs) {
     hubLayer
       .selectAll(".hub")
-      .data([...hubs.entries()], (d) => d[0])
+      .data(hubs, (d) => d.name)
       .join("circle")
       .attr("class", "hub")
       .attr("r", 5)
-      .attr("cx", (d) => projection(d[1])[0])
-      .attr("cy", (d) => projection(d[1])[1]);
+      .attr("cx", (d) => projection(d.coord)[0])
+      .attr("cy", (d) => projection(d.coord)[1]);
   }
 
   function renderSourceDots(events) {
@@ -385,7 +418,7 @@
       .attr("cy", (d) => projection(d.sourceCoord)[1])
       .on("mousemove", (event, d) => {
         showTooltip(
-          `<div class="attack-line">${flagSpan(d.country)}<strong style="color:${d.color || "#33e0ff"}">${d.attackType || "?"}</strong>${flagSpan(d.targetCountry)}</div>` +
+          `<div class="attack-line">${flagSpan(d.country)}<strong style="color:${d.color || "#33e0ff"}">${d.attackType || "?"}</strong></div>` +
             `${countryName(d.country)} &middot; ${d.ip}<br/>${d.reports.toLocaleString("pt-BR")} registros${threatTagsHtml(d.threatTags)}`,
           [event.offsetX, event.offsetY]
         );
@@ -425,23 +458,18 @@
       color: ev.color || "#33e0ff",
       radius: 0.35,
       altitude: 0.01,
-      label: `<div class="attack-line">${flagSpan(ev.country)}<strong style="color:${ev.color || "#33e0ff"}">${ev.attackType || "?"}</strong>${flagSpan(ev.targetCountry)}</div>${countryName(ev.country)} &middot; ${ev.ip}<br/>${ev.reports.toLocaleString("pt-BR")} registros${threatTagsHtml(ev.threatTags)}`,
+      label: `<div class="attack-line">${flagSpan(ev.country)}<strong style="color:${ev.color || "#33e0ff"}">${ev.attackType || "?"}</strong></div>${countryName(ev.country)} &middot; ${ev.ip}<br/>${ev.reports.toLocaleString("pt-BR")} registros${threatTagsHtml(ev.threatTags)}`,
     }));
 
-    const hubs = new Map();
-    for (const ev of events) {
-      if (!hubs.has(ev.targetHub)) {
-        hubs.set(ev.targetHub, {
-          lat: ev.targetCoord[1],
-          lng: ev.targetCoord[0],
-          color: "#7c88a6",
-          radius: 0.55,
-          altitude: 0.012,
-          label: countryName(ev.targetCountry),
-        });
-      }
-    }
-    return points.concat([...hubs.values()]);
+    const hubPoints = hubList.map((h) => ({
+      lat: h.coord[1],
+      lng: h.coord[0],
+      color: "#7c88a6",
+      radius: 0.55,
+      altitude: 0.012,
+      label: countryName(h.country),
+    }));
+    return points.concat(hubPoints);
   }
 
   function resizeGlobe() {
@@ -590,22 +618,44 @@
     });
   }
 
-  // Reproduz os eventos coletados em loop, com atraso aleatorio entre cada
-  // disparo, ja que os dados brutos do DShield so mudam a cada ~15 minutos.
-  // Sorteia o proximo ataque em vez de seguir sempre a mesma sequencia --
-  // assim a frequencia de cada pais-alvo varia com o tempo (em vez de todos
-  // andarem em lockstep, um atras do outro) e o ranking realmente embaralha.
+  // Reproduz os eventos coletados em loop, ja que os dados brutos do DShield
+  // so mudam a cada execucao do workflow. Cada "tick" dispara uma rajada de
+  // 1 a 3 ataques (50% / 30% / 20%) escalonados em poucas centenas de ms, e
+  // o intervalo entre ticks e curto -- ~2 eventos/s em media, o dobro do
+  // ritmo anterior. Os eventos sao sorteados (e distintos dentro da rajada,
+  // sem repetir os da rajada anterior) para a frequencia de cada pais-alvo
+  // variar com o tempo e o ranking realmente embaralhar.
+  const BURST_SIZES = [1, 1, 1, 1, 1, 2, 2, 2, 3, 3];
+  const TICK_MIN_MS = 450;
+  const TICK_MAX_MS = 1250;
+
   function startAnimationLoop(events) {
     if (!events.length) return;
-    let lastIndex = -1;
-    function tick() {
-      let idx = Math.floor(Math.random() * events.length);
-      if (events.length > 1 && idx === lastIndex) {
-        idx = (idx + 1) % events.length;
+    let lastBurst = [];
+
+    function pickBurst() {
+      const size = Math.min(
+        BURST_SIZES[Math.floor(Math.random() * BURST_SIZES.length)],
+        events.length
+      );
+      const avoidRecent = events.length > size + lastBurst.length;
+      const picked = [];
+      while (picked.length < size) {
+        const idx = Math.floor(Math.random() * events.length);
+        if (picked.includes(idx)) continue;
+        if (avoidRecent && lastBurst.includes(idx)) continue;
+        picked.push(idx);
       }
-      lastIndex = idx;
-      fireEvent(events[idx]);
-      setTimeout(tick, 500 + Math.random() * 1100);
+      return picked;
+    }
+
+    function tick() {
+      const burst = pickBurst();
+      burst.forEach((idx, i) => {
+        setTimeout(() => fireEvent(events[idx]), i * (140 + Math.random() * 260));
+      });
+      lastBurst = burst;
+      setTimeout(tick, TICK_MIN_MS + Math.random() * (TICK_MAX_MS - TICK_MIN_MS));
     }
     tick();
   }
@@ -646,6 +696,7 @@
         }),
       ]);
       liveData = data;
+      hubList = buildHubList(data.events || []);
       portsHistory = data.portsHistory || null;
       updatedAtEl.textContent = `Fonte: ${data.source}`;
       renderAttackCounter(data.totalRecordsToday);
@@ -655,7 +706,7 @@
       renderCountryRanking(countryRankingArray());
       renderLegend(data.categories || []);
       renderUpdateTime(data.generatedAt);
-      renderHubs(data.events || []);
+      renderHubs(hubList);
       renderSourceDots(data.events || []);
       startAnimationLoop(data.events || []);
     } catch (err) {
