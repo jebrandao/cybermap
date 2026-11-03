@@ -178,8 +178,16 @@
   function threatTagsHtml(tags) {
     if (!tags || !tags.length) return "";
     return `<div class="threat-tags">${tags
-      .map((t) => `<span class="threat-tag" title="Visto pela ultima vez em ${t.lastSeen || "?"}">${t.label}</span>`)
+      .map((t) => {
+        const title = t.lastSeen ? ` title="Visto pela ultima vez em ${t.lastSeen}"` : "";
+        return `<span class="threat-tag"${title}>${t.label}</span>`;
+      })
       .join("")}</div>`;
+  }
+
+  // Eventos vindos do blocklist.de nao trazem contagem de registros.
+  function reportsHtml(ev) {
+    return ev.reports ? `<br/>${ev.reports.toLocaleString("pt-BR")} registros` : "";
   }
 
   function prependEventToList(ev) {
@@ -296,17 +304,17 @@
 
   // Comeca com valores aleatorios (em vez da contagem literal, quase empatada)
   // para que o ranking ja nasca embaralhado e as posicoes tenham de onde variar.
-  // Os 12 hubs de destino ilustrativos sao uma fatia pequena perto dos 200+
-  // paises do mundo real -- a soma deles nao deveria bater no contador
+  // Os paises dos hubs de destino ilustrativos sao uma fatia pequena perto dos
+  // 200+ paises do mundo real -- a soma deles nao deveria bater no contador
   // principal (isso exigiria numeros irreais por pais). Em vez disso, mira
-  // numa fracao plausivel do total (os "12 mais" concentrando uma parcela
+  // numa fracao plausivel do total (os paises mais atacados concentrando uma parcela
   // desproporcional do volume, como costuma acontecer na pratica), com
   // pesos aleatorios e desiguais entre os paises em vez de uma faixa fixa
   // desconectada do contador.
   const COUNTRY_SHARE_OF_TOTAL = 0.12;
 
-  function buildInitialCountryTally(events, totalRecordsToday) {
-    const countries = [...new Set(events.map((ev) => ev.targetCountry).filter(Boolean))];
+  function buildInitialCountryTally(hubs, totalRecordsToday) {
+    const countries = [...new Set(hubs.map((h) => h.country).filter(Boolean))];
     const map = new Map();
     if (!countries.length) return map;
 
@@ -318,7 +326,7 @@
     }
 
     // Pesos com variancia realista (alguns paises concentram bem mais que
-    // outros) em vez de distribuir o total igualmente entre os 12.
+    // outros) em vez de distribuir o total igualmente entre todos.
     const weights = countries.map(() => Math.pow(Math.random(), 2) + 0.05);
     const weightSum = weights.reduce((a, b) => a + b, 0);
     countries.forEach((country, i) => {
@@ -386,9 +394,12 @@
   // withRandomDestination) em vez de ficar preso ao hub gravado no JSON.
   let hubList = [];
 
-  function buildHubList(events) {
+  function buildHubList(data) {
+    // Lista completa gravada pelo script de coleta; o fallback por eventos
+    // cobre um attacks.json antigo, sem o campo "hubs".
+    if (Array.isArray(data.hubs) && data.hubs.length) return data.hubs;
     const hubs = new Map();
-    for (const ev of events) {
+    for (const ev of data.events || []) {
       if (ev.targetHub && !hubs.has(ev.targetHub)) {
         hubs.set(ev.targetHub, { name: ev.targetHub, coord: ev.targetCoord, country: ev.targetCountry });
       }
@@ -419,7 +430,7 @@
       .on("mousemove", (event, d) => {
         showTooltip(
           `<div class="attack-line">${flagSpan(d.country)}<strong style="color:${d.color || "#33e0ff"}">${d.attackType || "?"}</strong></div>` +
-            `${countryName(d.country)} &middot; ${d.ip}<br/>${d.reports.toLocaleString("pt-BR")} registros${threatTagsHtml(d.threatTags)}`,
+            `${countryName(d.country)} &middot; ${d.ip}${reportsHtml(d)}${threatTagsHtml(d.threatTags)}`,
           [event.offsetX, event.offsetY]
         );
       })
@@ -458,7 +469,7 @@
       color: ev.color || "#33e0ff",
       radius: 0.35,
       altitude: 0.01,
-      label: `<div class="attack-line">${flagSpan(ev.country)}<strong style="color:${ev.color || "#33e0ff"}">${ev.attackType || "?"}</strong></div>${countryName(ev.country)} &middot; ${ev.ip}<br/>${ev.reports.toLocaleString("pt-BR")} registros${threatTagsHtml(ev.threatTags)}`,
+      label: `<div class="attack-line">${flagSpan(ev.country)}<strong style="color:${ev.color || "#33e0ff"}">${ev.attackType || "?"}</strong></div>${countryName(ev.country)} &middot; ${ev.ip}${reportsHtml(ev)}${threatTagsHtml(ev.threatTags)}`,
     }));
 
     const hubPoints = hubList.map((h) => ({
@@ -696,13 +707,13 @@
         }),
       ]);
       liveData = data;
-      hubList = buildHubList(data.events || []);
+      hubList = buildHubList(data);
       portsHistory = data.portsHistory || null;
       updatedAtEl.textContent = `Fonte: ${data.source}`;
       renderAttackCounter(data.totalRecordsToday);
       renderPortList(data.ports || []);
       renderCveList(data.cves || []);
-      countryTotals = buildInitialCountryTally(data.events || [], data.totalRecordsToday);
+      countryTotals = buildInitialCountryTally(hubList, data.totalRecordsToday);
       renderCountryRanking(countryRankingArray());
       renderLegend(data.categories || []);
       renderUpdateTime(data.generatedAt);

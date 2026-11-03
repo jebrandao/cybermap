@@ -11,9 +11,11 @@ Mapa 2D de ataques cibernéticos, inspirado no [Kaspersky Cyberthreat Map](https
 
 ## Limitações importantes (leia antes de divulgar como "tempo real")
 
-- O DShield não expõe a localização real dos sensores/alvos por privacidade. Os pontos de **destino** no mapa são ilustrativos (hubs fixos), não geografia real.
+- O DShield não expõe a localização real dos sensores/alvos por privacidade. Os pontos de **destino** no mapa são ilustrativos (42 hubs fixos, definidos em `TARGET_HUBS` e gravados em `hubs` no JSON), não geografia real.
+- Os IPs de **origem** vêm de duas fontes: os 100 mais ativos do DShield (`topips`; os 20 primeiros também ganham tags de threat feed via `api/ip`) e uma amostra aleatória das listas por serviço do [blocklist.de](https://www.blocklist.de/) (ssh, ftp, mail, apache, sip, bots; 15 IPs por lista, ajustável com `BLOCKLIST_SAMPLE_PER_LIST`). O blocklist.de acrescenta variedade de países, e nesses eventos (`origin: "blocklist.de"`) o tipo de ataque é real, mas não há contagem de registros nem porta. Para os eventos do DShield o tipo continua sendo sorteado pela distribuição de portas do dia.
+- O país de cada IP vem do geo-IP em lote do [country.is](https://country.is/); se ele falhar, usa-se o país do ASN informado pelo DShield.
 - Os dados da API já vêm com cache de 10 minutos no servidor deles; por isso a atualização é a cada 15 min, não por segundo. A animação no front-end reproduz os eventos coletados em loop para dar sensação de continuidade.
-- A localização de **origem** é o país do IP (via ASN), não a cidade exata.
+- A localização de **origem** é o país do IP, não a cidade exata: a posição dentro do país é sorteada ao redor do centroide (com raio maior em países grandes).
 - Respeite a política de uso da API: identifique-se com um `User-Agent` contendo um contato válido (veja abaixo).
 
 ## Configuração antes de publicar

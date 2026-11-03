@@ -24,7 +24,10 @@ const DATA_DIR = join(__dirname, "..", "data");
 const CONTACT = process.env.DSHIELD_CONTACT || "github.com/SEU_USUARIO/SEU_REPO";
 const USER_AGENT = `cybermap-clone (+${CONTACT})`;
 
-const TOP_IPS_LIMIT = Number(process.env.TOP_IPS_LIMIT || 20);
+const TOP_IPS_LIMIT = Number(process.env.TOP_IPS_LIMIT || 100);
+// So os primeiros IPs passam pelo api/ip do DShield (1 requisicao cada, serve
+// pras tags de threat feed). O restante tem so o pais resolvido em lote.
+const IP_DETAIL_LIMIT = Number(process.env.IP_DETAIL_LIMIT || 20);
 const TOP_PORTS_LIMIT = Number(process.env.TOP_PORTS_LIMIT || 10);
 const TOTAL_PORTS_SAMPLE = Number(process.env.TOTAL_PORTS_SAMPLE || 50);
 const CVE_LIMIT = Number(process.env.CVE_LIMIT || 8);
@@ -42,19 +45,60 @@ const SEVERITY_COLORS = {
 // dos sensores/alvos (por privacidade), entao usamos alguns hubs fixos so
 // para dar direcao visual aos arcos, sem alegar precisao geografica real.
 const TARGET_HUBS = [
+  // Americas
   { name: "US-Washington", coord: [-77.03, 38.9], country: "US" },
+  { name: "US-SanFrancisco", coord: [-122.42, 37.77], country: "US" },
+  { name: "CA-Toronto", coord: [-79.38, 43.65], country: "CA" },
+  { name: "MX-MexicoCity", coord: [-99.13, 19.43], country: "MX" },
+  { name: "BR-SaoPaulo", coord: [-46.63, -23.55], country: "BR" },
+  { name: "AR-BuenosAires", coord: [-58.38, -34.6], country: "AR" },
+  { name: "CL-Santiago", coord: [-70.67, -33.45], country: "CL" },
+  { name: "CO-Bogota", coord: [-74.07, 4.71], country: "CO" },
+  { name: "PE-Lima", coord: [-77.04, -12.05], country: "PE" },
+  // Europa
+  { name: "GB-London", coord: [-0.13, 51.51], country: "GB" },
+  { name: "IE-Dublin", coord: [-6.26, 53.35], country: "IE" },
+  { name: "FR-Paris", coord: [2.35, 48.86], country: "FR" },
   { name: "DE-Frankfurt", coord: [8.68, 50.11], country: "DE" },
   { name: "NL-Amsterdam", coord: [4.9, 52.37], country: "NL" },
-  { name: "GB-London", coord: [-0.13, 51.51], country: "GB" },
-  { name: "FR-Paris", coord: [2.35, 48.86], country: "FR" },
-  { name: "JP-Tokyo", coord: [139.69, 35.68], country: "JP" },
-  { name: "SG-Singapore", coord: [103.82, 1.35], country: "SG" },
+  { name: "ES-Madrid", coord: [-3.7, 40.42], country: "ES" },
+  { name: "PT-Lisbon", coord: [-9.14, 38.72], country: "PT" },
+  { name: "IT-Milan", coord: [9.19, 45.46], country: "IT" },
+  { name: "CH-Zurich", coord: [8.54, 47.38], country: "CH" },
+  { name: "SE-Stockholm", coord: [18.07, 59.33], country: "SE" },
+  { name: "PL-Warsaw", coord: [21.01, 52.23], country: "PL" },
+  { name: "UA-Kyiv", coord: [30.52, 50.45], country: "UA" },
+  { name: "TR-Istanbul", coord: [28.98, 41.01], country: "TR" },
+  // Oriente Medio e Africa
+  { name: "IL-TelAviv", coord: [34.78, 32.09], country: "IL" },
+  { name: "SA-Riyadh", coord: [46.68, 24.71], country: "SA" },
+  { name: "AE-Dubai", coord: [55.27, 25.2], country: "AE" },
+  { name: "EG-Cairo", coord: [31.24, 30.04], country: "EG" },
+  { name: "NG-Lagos", coord: [3.38, 6.52], country: "NG" },
+  { name: "KE-Nairobi", coord: [36.82, -1.29], country: "KE" },
+  { name: "ZA-Johannesburg", coord: [28.05, -26.2], country: "ZA" },
+  // Asia-Pacifico
   { name: "IN-Mumbai", coord: [72.88, 19.08], country: "IN" },
-  { name: "BR-SaoPaulo", coord: [-46.63, -23.55], country: "BR" },
-  { name: "AU-Sydney", coord: [151.21, -33.87], country: "AU" },
-  { name: "CA-Toronto", coord: [-79.38, 43.65], country: "CA" },
+  { name: "CN-Shanghai", coord: [121.47, 31.23], country: "CN" },
+  { name: "HK-HongKong", coord: [114.17, 22.32], country: "HK" },
+  { name: "JP-Tokyo", coord: [139.69, 35.68], country: "JP" },
   { name: "KR-Seoul", coord: [126.98, 37.57], country: "KR" },
+  { name: "SG-Singapore", coord: [103.82, 1.35], country: "SG" },
+  { name: "MY-KualaLumpur", coord: [101.69, 3.14], country: "MY" },
+  { name: "TH-Bangkok", coord: [100.5, 13.76], country: "TH" },
+  { name: "VN-HoChiMinh", coord: [106.66, 10.82], country: "VN" },
+  { name: "PH-Manila", coord: [120.98, 14.6], country: "PH" },
+  { name: "ID-Jakarta", coord: [106.85, -6.21], country: "ID" },
+  { name: "AU-Sydney", coord: [151.21, -33.87], country: "AU" },
+  { name: "NZ-Auckland", coord: [174.76, -36.85], country: "NZ" },
 ];
+
+// Paises grandes: o centroide sozinho concentraria todos os IPs num ponto so
+// (e muitas vezes no meio do nada), entao a origem e espalhada numa area maior.
+const LARGE_COUNTRY_SPREAD = {
+  US: 20, CN: 20, RU: 30, BR: 18, CA: 24, AU: 18, IN: 12, AR: 12, KZ: 18, MX: 10,
+};
+const DEFAULT_SOURCE_SPREAD = 5;
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -89,6 +133,81 @@ function jitterAround([lon, lat], spreadDeg = 4) {
     lon + (Math.random() - 0.5) * spreadDeg,
     lat + (Math.random() - 0.5) * spreadDeg,
   ];
+}
+
+// blocklist.de publica listas de IPs reportados por atacar cada servico
+// (ssh, mail...). Diferente do DShield, aqui o tipo de ataque e real por IP:
+// ele esta na lista daquele servico. Pegamos so uma amostra aleatoria de cada
+// lista, porque elas tem milhares de IPs e o objetivo e dar variedade de
+// paises de origem, nao espelhar a lista inteira.
+const BLOCKLIST_SAMPLE_PER_LIST = Number(process.env.BLOCKLIST_SAMPLE_PER_LIST || 15);
+const BLOCKLIST_SERVICES = [
+  { key: "ssh", label: "SSH Brute-force", category: "remote" },
+  { key: "ftp", label: "FTP Brute-force", category: "remote" },
+  { key: "mail", label: "Abuso de e-mail / Spam", category: "mail" },
+  { key: "apache", label: "Ataque a servidor web", category: "web" },
+  { key: "sip", label: "SIP/VoIP Scan", category: "net" },
+  { key: "bots", label: "Botnet", category: "other" },
+];
+
+function shuffled(list) {
+  const copy = [...list];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+// Devolve [{ ip, service }] sem repetir IP (nem os ja usados em `skipIps`).
+// Qualquer falha de rede vira aviso: a coleta segue so com o DShield.
+async function fetchBlocklistSample(skipIps) {
+  const seen = new Set(skipIps);
+  const sample = [];
+  for (const service of BLOCKLIST_SERVICES) {
+    try {
+      const res = await fetch(`https://lists.blocklist.de/lists/${service.key}.txt`, {
+        headers: { "User-Agent": USER_AGENT },
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const ips = (await res.text())
+        .split(/\s+/)
+        .filter((s) => /^\d{1,3}(\.\d{1,3}){3}$/.test(s) && !seen.has(s));
+      for (const ip of shuffled(ips).slice(0, BLOCKLIST_SAMPLE_PER_LIST)) {
+        seen.add(ip);
+        sample.push({ ip, service });
+      }
+    } catch (err) {
+      console.warn(`Nao foi possivel ler a lista ${service.key} do blocklist.de: ${err.message}`);
+    }
+    await sleep(REQUEST_DELAY_MS);
+  }
+  return sample;
+}
+
+// Resolve o pais de varios IPs de uma vez via country.is (geo-IP gratuito,
+// ate 100 IPs por chamada). Falha de rede nao derruba a coleta: devolve um
+// Map vazio e o chamador cai no pais informado pelo DShield.
+async function lookupCountriesBulk(ips) {
+  const result = new Map();
+  for (let i = 0; i < ips.length; i += 100) {
+    const chunk = ips.slice(i, i + 100);
+    try {
+      const res = await fetch("https://api.country.is", {
+        method: "POST",
+        headers: { "User-Agent": USER_AGENT, "Content-Type": "application/json" },
+        body: JSON.stringify(chunk),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const list = await res.json();
+      for (const item of Array.isArray(list) ? list : []) {
+        if (item?.ip && item?.country) result.set(item.ip, item.country);
+      }
+    } catch (err) {
+      console.warn(`Geo-IP em lote falhou (${err.message}); usando so o pais do DShield.`);
+    }
+  }
+  return result;
 }
 
 function isoDaysAgo(days) {
@@ -218,23 +337,36 @@ async function main() {
 
   const centroids = await loadCentroids();
 
+  const entries = topIps.filter((e) => (e.source || e.ip || "").trim());
+  const dshieldIps = entries.map((e) => (e.source || e.ip).trim());
+
+  console.log("Buscando amostra de IPs no blocklist.de...");
+  const blocklistSample = await fetchBlocklistSample(dshieldIps);
+
+  console.log(`Resolvendo pais de ${dshieldIps.length + blocklistSample.length} IPs em lote (geo-IP)...`);
+  const geoCountries = await lookupCountriesBulk([...dshieldIps, ...blocklistSample.map((b) => b.ip)]);
+
   const events = [];
   let ipIndex = 0;
-  for (const entry of topIps) {
-    const ip = (entry.source || entry.ip || "").trim();
-    if (!ip) continue;
+  for (const [position, entry] of entries.entries()) {
+    const ip = (entry.source || entry.ip).trim();
 
-    await sleep(REQUEST_DELAY_MS);
-    let country = null;
+    // Pais do DShield (ASN) so e buscado para os primeiros IPs, que tambem
+    // ganham tags de threat feed. Quando existe, o geo-IP tem preferencia
+    // porque reflete onde o IP esta de fato, nao onde o ASN foi registrado.
+    let asnCountry = null;
     let threatTags = [];
-    try {
-      const details = await fetchJSON(`https://isc.sans.edu/api/ip/${ip}?json`);
-      country = details?.ip?.ascountry || null;
-      threatTags = buildThreatTags(details?.ip?.threatfeeds);
-    } catch (err) {
-      console.warn(`Nao foi possivel resolver pais de ${ip}: ${err.message}`);
-      continue;
+    if (position < IP_DETAIL_LIMIT) {
+      await sleep(REQUEST_DELAY_MS);
+      try {
+        const details = await fetchJSON(`https://isc.sans.edu/api/ip/${ip}?json`);
+        asnCountry = details?.ip?.ascountry || null;
+        threatTags = buildThreatTags(details?.ip?.threatfeeds);
+      } catch (err) {
+        console.warn(`Nao foi possivel consultar ${ip} no DShield: ${err.message}`);
+      }
     }
+    const country = geoCountries.get(ip) || asnCountry;
 
     const centroid = country ? centroids[country] : null;
     if (!centroid) {
@@ -252,7 +384,7 @@ async function main() {
       id: `${ip}-${Date.now()}-${ipIndex}`,
       ip,
       country,
-      sourceCoord: jitterAround(centroid, 3),
+      sourceCoord: jitterAround(centroid, LARGE_COUNTRY_SPREAD[country] || DEFAULT_SOURCE_SPREAD),
       targetCoord: jitterAround(hub.coord, 3),
       targetHub: hub.name,
       targetCountry: hub.country,
@@ -263,6 +395,37 @@ async function main() {
       category,
       color: CATEGORY_COLORS[category] || CATEGORY_COLORS.other,
       threatTags,
+      origin: "dshield",
+    });
+    ipIndex++;
+  }
+
+  for (const { ip, service } of blocklistSample) {
+    const country = geoCountries.get(ip);
+    const centroid = country ? centroids[country] : null;
+    if (!centroid) continue;
+
+    const hub = TARGET_HUBS[ipIndex % TARGET_HUBS.length];
+    events.push({
+      id: `${ip}-${Date.now()}-${ipIndex}`,
+      ip,
+      country,
+      sourceCoord: jitterAround(centroid, LARGE_COUNTRY_SPREAD[country] || DEFAULT_SOURCE_SPREAD),
+      targetCoord: jitterAround(hub.coord, 3),
+      targetHub: hub.name,
+      targetCountry: hub.country,
+      // Sem contagem de registros nem porta: a lista so informa que o IP
+      // foi reportado atacando aquele servico.
+      reports: null,
+      targets: null,
+      port: null,
+      attackType: service.label,
+      category: service.category,
+      color: CATEGORY_COLORS[service.category] || CATEGORY_COLORS.other,
+      threatTags: [
+        { key: `blocklistde_${service.key}`, label: `Blocklist.de — ${service.label}`, lastSeen: null },
+      ],
+      origin: "blocklist.de",
     });
     ipIndex++;
   }
@@ -273,6 +436,7 @@ async function main() {
 
   // Ranking dos paises "mais atacados" com base no volume (reports) dos
   // eventos coletados, agrupado pelo pais do hub de destino de cada evento.
+  // Eventos do blocklist.de nao tem `reports`, entao nao entram na soma.
   // Como os hubs de destino sao estilizados (ver nota acima), este ranking
   // fica limitado aos paises representados pelos hubs -- nao e uma medicao
   // real de vitimas por pais.
@@ -280,7 +444,7 @@ async function main() {
   for (const ev of events) {
     const key = ev.targetCountry;
     if (!key) continue;
-    countryTotals.set(key, (countryTotals.get(key) || 0) + ev.reports);
+    countryTotals.set(key, (countryTotals.get(key) || 0) + (ev.reports || 0));
   }
   const countryRanking = [...countryTotals.entries()]
     .map(([country, reports]) => ({ country, reports }))
@@ -308,6 +472,13 @@ async function main() {
       today: { date: portsDate, ports: topPorts },
       week_ago: { date: portsWeekAgoDate, ports: portsWeekAgo },
     },
+    hubsNote:
+      "Hubs de destino ilustrativos: a API do DShield nao expoe a localizacao real dos sensores. Cada disparo no mapa sorteia um destino entre estes.",
+    sourceCountryNote:
+      "Pais de origem via geo-IP (country.is) quando disponivel, senao o pais do ASN informado pelo DShield. A posicao exata dentro do pais e sorteada ao redor do centroide.",
+    blocklistNote:
+      "Parte dos IPs de origem vem de uma amostra aleatoria das listas por servico do blocklist.de (ssh, mail, apache, ftp, sip, bots). Nesses eventos o tipo de ataque e real (o IP foi reportado atacando aquele servico), mas nao ha contagem de registros nem porta; sao marcados com origin=blocklist.de.",
+    hubs: TARGET_HUBS,
     events,
     cves,
     countryRanking,
