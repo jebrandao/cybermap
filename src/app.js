@@ -291,9 +291,8 @@
     counterModel = { base, ratePerSec: base / elapsedS, startMs: Date.now() };
 
     const el = document.getElementById("attack-counter");
-    el.querySelector(".attack-counter-label").textContent = usingYesterday
-      ? "registros de ataque · base: dia anterior"
-      : "registros de ataque hoje";
+    // Rotulo curto; a origem do numero fica na dica (title) ao passar o mouse.
+    el.querySelector(".attack-counter-label").textContent = "registros de ataques";
     el.title = usingYesterday
       ? `Total do dia anterior (${data.yesterdayDate || "?"}) no DShield, soma das portas mais ` +
         "reportadas, somado a taxa media daquele dia enquanto os ataques sao exibidos."
@@ -445,11 +444,12 @@
     hubWeights = items && items.length ? buildHubWeights(hubList, items) : [];
     if (hubWeights.length) {
       countryTotals = buildTallyFromRanking(items, hubWeights, volumeBase(data));
-      hint.textContent = "ordem: Cloudflare Radar · DDoS camada 7 · 24 h";
-      hint.title =
+      // Sem texto visivel; a explicacao fica so na dica do titulo do painel.
+      hint.textContent = "";
+      hint.parentElement.querySelector("h2").title =
         "Ranking real de paises-alvo de ataques DDoS (camada 7) mitigados pela Cloudflare nas " +
-        "ultimas 24 h. E outro universo que o DShield. Os numeros sao esses percentuais " +
-        "aplicados a base de volume do contador e crescem a cada ataque exibido.";
+        "ultimas 24 h (Cloudflare Radar). E outro universo que o DShield. Os numeros sao esses " +
+        "percentuais aplicados a base de volume do contador e crescem a cada ataque exibido.";
     } else {
       countryTotals = buildInitialCountryTally(hubList, volumeBase(data));
       hint.textContent = "ordem ilustrativa";
@@ -737,7 +737,21 @@
     }, 1200);
   }
 
-  async function switchView(mode) {
+  function syncViewButtons() {
+    document.querySelectorAll(".view-btn").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.mode === viewMode);
+    });
+  }
+
+  function applyRotationSpeed(speed) {
+    if (!globeInstance) return;
+    const controls = globeInstance.controls();
+    controls.autoRotate = speed > 0;
+    controls.autoRotateSpeed = speed;
+  }
+
+  // opts.rotationSpeed: se informado, ajusta o globo (e o slider) ao entrar no 3D.
+  async function switchView(mode, opts = {}) {
     if (mode === viewMode) return;
     document.querySelectorAll(".view-btn").forEach((btn) => {
       btn.classList.toggle("active", btn.dataset.mode === mode);
@@ -755,6 +769,10 @@
       document.getElementById("map").classList.add("hidden");
       document.getElementById("globe").classList.remove("hidden");
       document.getElementById("rotation-control").classList.remove("hidden");
+      if (opts.rotationSpeed !== undefined) {
+        document.getElementById("rotation-speed").value = opts.rotationSpeed;
+        applyRotationSpeed(opts.rotationSpeed);
+      }
       resizeGlobe();
     } else {
       document.getElementById("globe").classList.add("hidden");
@@ -764,19 +782,53 @@
     viewMode = mode;
   }
 
+  // Rodizio automatico: 10 min no mapa 2D, 3 min no globo 3D girando a 80% da
+  // velocidade maxima do slider, e volta ao 2D, em ciclo. Qualquer troca (do
+  // rodizio ou manual pelos botoes) reinicia a contagem do modo em que cair,
+  // entao quem escolhe um modo na mao nao e arrancado dele de imediato.
+  // Para testar sem esperar minutos: ?ciclo2d=<segundos>&ciclo3d=<segundos>.
+  const urlParams = new URLSearchParams(location.search);
+  const CYCLE_2D_MS = (Number(urlParams.get("ciclo2d")) || 10 * 60) * 1000;
+  const CYCLE_3D_MS = (Number(urlParams.get("ciclo3d")) || 3 * 60) * 1000;
+  const CYCLE_3D_SPEED_FRACTION = 0.8;
+  let cycleTimer = null;
+
+  function scheduleViewCycle() {
+    clearTimeout(cycleTimer);
+    const wait = viewMode === "2d" ? CYCLE_2D_MS : CYCLE_3D_MS;
+    cycleTimer = setTimeout(async () => {
+      const next = viewMode === "2d" ? "3d" : "2d";
+      const maxSpeed = parseFloat(document.getElementById("rotation-speed").max) || 2;
+      try {
+        await switchView(next, next === "3d" ? { rotationSpeed: maxSpeed * CYCLE_3D_SPEED_FRACTION } : {});
+      } catch (err) {
+        // Ex.: falha ao baixar a biblioteca do globo -- fica no modo atual e tenta de novo no proximo ciclo.
+        console.error(err);
+        syncViewButtons();
+      } finally {
+        scheduleViewCycle();
+      }
+    }, wait);
+  }
+
   function initViewToggle() {
     document.querySelectorAll(".view-btn").forEach((btn) => {
-      btn.addEventListener("click", () => switchView(btn.dataset.mode));
+      btn.addEventListener("click", async () => {
+        try {
+          await switchView(btn.dataset.mode);
+        } catch (err) {
+          console.error(err);
+          syncViewButtons();
+        } finally {
+          scheduleViewCycle();
+        }
+      });
     });
 
     const speedInput = document.getElementById("rotation-speed");
-    speedInput.addEventListener("input", () => {
-      if (!globeInstance) return;
-      const speed = parseFloat(speedInput.value);
-      const controls = globeInstance.controls();
-      controls.autoRotate = speed > 0;
-      controls.autoRotateSpeed = speed;
-    });
+    speedInput.addEventListener("input", () => applyRotationSpeed(parseFloat(speedInput.value)));
+
+    scheduleViewCycle();
   }
 
   // Reproduz os eventos coletados em loop, ja que os dados brutos do DShield
