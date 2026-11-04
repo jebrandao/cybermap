@@ -6,9 +6,9 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
-<title>CyberMap &mdash; Ataques em Tempo (quase) Real</title>
+<title>CyberMap - Ataques em Tempo Real</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7/css/flag-icons.min.css" />
-<link rel="stylesheet" href="style.css?v=17" />
+<link rel="stylesheet" href="style.css?v=18" />
 </head>
 <body>
   <div id="app">
@@ -32,6 +32,7 @@
       </section>
       <section>
         <h2>Países mais atacados</h2>
+        <div id="ranking-source" class="section-sub"></div>
         <ol id="country-ranking"></ol>
       </section>
     </aside>
@@ -81,6 +82,9 @@
           <a href="https://www.blocklist.de/" target="_blank" rel="noopener">blocklist.de</a>.
           As coordenadas de origem refletem o pa&iacute;s do IP atacante; os pontos de destino s&atilde;o
           ilustrativos (a API n&atilde;o expõe a localiza&ccedil;&atilde;o real dos sensores).
+          A ordem dos pa&iacute;ses mais atacados, quando dispon&iacute;vel, vem do
+          <a href="https://radar.cloudflare.com/" target="_blank" rel="noopener">Cloudflare Radar</a>
+          (ataques DDoS de camada 7, &uacute;ltimas 24 h).
           Os CVEs listados vêm da <a href="https://nvd.nist.gov/" target="_blank" rel="noopener">NVD/NIST</a>
           e n&atilde;o t&ecirc;m rela&ccedil;&atilde;o direta com os eventos exibidos.
         </p>
@@ -90,6 +94,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
-  <script src="src/app.js?v=23"></script>
+  <script src="src/app.js?v=27"></script>
 </body>
 </html>

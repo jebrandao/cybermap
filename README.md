@@ -13,6 +13,8 @@ Mapa 2D de ataques cibernéticos, inspirado no [Kaspersky Cyberthreat Map](https
 
 - O DShield não expõe a localização real dos sensores/alvos por privacidade. Os pontos de **destino** no mapa são ilustrativos (42 hubs fixos, definidos em `TARGET_HUBS` e gravados em `hubs` no JSON), não geografia real.
 - Os IPs de **origem** vêm de duas fontes: os 100 mais ativos do DShield (`topips`; os 20 primeiros também ganham tags de threat feed via `api/ip`) e uma amostra aleatória das listas por serviço do [blocklist.de](https://www.blocklist.de/) (ssh, ftp, mail, apache, sip, bots; 15 IPs por lista, ajustável com `BLOCKLIST_SAMPLE_PER_LIST`). O blocklist.de acrescenta variedade de países, e nesses eventos (`origin: "blocklist.de"`) o tipo de ataque é real, mas não há contagem de registros nem porta. Para os eventos do DShield o tipo continua sendo sorteado pela distribuição de portas do dia.
+- O painel **Países mais atacados** é ilustrativo por padrão. Com um token do Cloudflare Radar (veja abaixo), a **ordem e as proporções** passam a seguir o ranking real de países-alvo de ataques DDoS de camada 7 das últimas 24 h (`targetRanking` no JSON), e o destino de cada disparo é sorteado com peso por esse ranking. É dado real, mas de outro universo que o DShield: o país é o de cobrança da zona atacada, sobre tráfego mitigado pela Cloudflare. Os valores absolutos mostrados são esses percentuais aplicados à base de volume do contador, só para ficarem na mesma escala.
+- O contador parte do total do **dia anterior** (completo) do DShield, soma das 50 portas mais reportadas, e sobe a cada ataque exibido pela taxa média daquele dia. O acumulado "de hoje" do DShield enche devagar no começo do dia UTC, por isso não é usado como base.
 - O país de cada IP vem do geo-IP em lote do [country.is](https://country.is/); se ele falhar, usa-se o país do ASN informado pelo DShield.
 - Os dados da API já vêm com cache de 10 minutos no servidor deles; por isso a atualização é a cada 15 min, não por segundo. A animação no front-end reproduz os eventos coletados em loop para dar sensação de continuidade.
 - A localização de **origem** é o país do IP, não a cidade exata: a posição dentro do país é sorteada ao redor do centroide (com raio maior em países grandes).
@@ -25,6 +27,8 @@ Mapa 2D de ataques cibernéticos, inspirado no [Kaspersky Cyberthreat Map](https
    - Ou deixe o padrão, que usa `${{ github.repository }}` automaticamente (já configurado no workflow).
 2. Habilite permissão de escrita para o workflow: Settings → Actions → General → Workflow permissions → **Read and write permissions**.
 3. Ative o GitHub Pages: Settings → Pages → Source → `Deploy from a branch` → branch `main`, pasta `/ (root)`.
+
+4. (Opcional) Ranking real de países-alvo via Cloudflare Radar: crie um token em https://dash.cloudflare.com/profile/api-tokens (Custom token, permissão **Account → Radar → Read**) e guarde como segredo do repositório `CLOUDFLARE_API_TOKEN` (Settings → Secrets and variables → Actions → Secrets). O token nunca vai para o código. Para conferir um token: `node scripts/check-cloudflare.mjs` (pede o token com digitação oculta). Sem o segredo, a coleta segue normalmente e o painel fica ilustrativo.
 
 Com isso o projeto já funciona: o cron nativo do GitHub atualiza os dados periodicamente (de forma "melhor esforço", ver limitação acima), e dá pra disparar manualmente a qualquer momento em Actions → "Atualizar dados de ataques (DShield)" → Run workflow.
 
