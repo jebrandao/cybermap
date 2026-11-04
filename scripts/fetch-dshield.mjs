@@ -17,6 +17,7 @@ import {
   CATEGORY_ORDER,
 } from "./attack-types.mjs";
 import { buildThreatTags } from "./threat-feeds.mjs";
+import { fetchTargetRanking } from "./cloudflare-radar.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = join(__dirname, "..", "data");
@@ -31,6 +32,7 @@ const IP_DETAIL_LIMIT = Number(process.env.IP_DETAIL_LIMIT || 20);
 const TOP_PORTS_LIMIT = Number(process.env.TOP_PORTS_LIMIT || 10);
 const TOTAL_PORTS_SAMPLE = Number(process.env.TOTAL_PORTS_SAMPLE || 50);
 const CVE_LIMIT = Number(process.env.CVE_LIMIT || 8);
+const TARGET_RANKING_LIMIT = Number(process.env.TARGET_RANKING_LIMIT || 30);
 const REQUEST_DELAY_MS = 400;
 
 const SEVERITY_COLORS = {
@@ -314,6 +316,20 @@ async function main() {
     console.warn(`Nao foi possivel calcular o total do dia: ${err.message}`);
   }
 
+  // O acumulado "de hoje" enche devagar no comeco do dia UTC, entao o total do
+  // dia anterior (completo) e uma base bem mais estavel para o contador.
+  await sleep(REQUEST_DELAY_MS);
+  console.log("Buscando amostra ampla de portas do dia anterior...");
+  let totalRecordsYesterday = null;
+  let yesterdayDate = null;
+  try {
+    const { ports: yList, date } = await fetchTopPorts(TOTAL_PORTS_SAMPLE, isoDateDaysAgo(1));
+    totalRecordsYesterday = yList.reduce((sum, p) => sum + (Number(p.records) || 0), 0);
+    yesterdayDate = date;
+  } catch (err) {
+    console.warn(`Nao foi possivel calcular o total do dia anterior: ${err.message}`);
+  }
+
   console.log("Buscando proporcao TCP/UDP por porta...");
   for (const p of topPorts) {
     await sleep(REQUEST_DELAY_MS);
@@ -336,6 +352,28 @@ async function main() {
   );
 
   const centroids = await loadCentroids();
+
+  console.log("Buscando ranking de paises-alvo no Cloudflare Radar...");
+  const targetRanking = await fetchTargetRanking({
+    token: process.env.CLOUDFLARE_API_TOKEN,
+    limit: TARGET_RANKING_LIMIT,
+    userAgent: USER_AGENT,
+  });
+
+  // Todo pais do ranking precisa de um destino no mapa. Os que nao tem hub
+  // entre os TARGET_HUBS ganham um hub no centroide do pais.
+  const hubs = [...TARGET_HUBS];
+  if (targetRanking) {
+    const hubCountries = new Set(TARGET_HUBS.map((h) => h.country));
+    targetRanking.items = targetRanking.items.filter((item) => {
+      if (hubCountries.has(item.country)) return true;
+      const centroid = centroids[item.country];
+      if (!centroid) return false;
+      hubs.push({ name: `${item.country}-Centro`, coord: centroid, country: item.country });
+      hubCountries.add(item.country);
+      return true;
+    });
+  }
 
   const entries = topIps.filter((e) => (e.source || e.ip || "").trim());
   const dshieldIps = entries.map((e) => (e.source || e.ip).trim());
@@ -460,9 +498,11 @@ async function main() {
     portProtocolNote:
       "tcpPct/udpPct vem do campo tcp/udp de api/port/{porta} do DShield. Nao somam exatamente 100 (parte do trafego fica sem protocolo classificado); nao sao uma contagem de registros, sao a proporcao reportada pela API.",
     totalRecordsToday,
+    totalRecordsYesterday,
+    yesterdayDate,
     portsDate,
     totalRecordsNote:
-      `Soma dos registros (records) das ${TOTAL_PORTS_SAMPLE} portas mais reportadas no dia pela API topports do DShield. Nao e o total absoluto de todos os ataques da internet -- e uma amostra real considerável, nao uma estimativa inventada.`,
+      `Soma dos registros (records) das ${TOTAL_PORTS_SAMPLE} portas mais reportadas no dia pela API topports do DShield. Nao e o total absoluto de todos os ataques da internet -- e uma amostra real considerável, nao uma estimativa inventada. totalRecordsToday e parcial (o dia UTC ainda esta em andamento e enche devagar no comeco); totalRecordsYesterday e o dia anterior completo, usado como base do contador na tela.`,
     cveNote:
       "Lista informativa de CVEs publicados recentemente (fonte: NVD/NIST), sem relacao direta com os eventos de ataque exibidos no mapa.",
     countryRankingNote:
@@ -478,7 +518,12 @@ async function main() {
       "Pais de origem via geo-IP (country.is) quando disponivel, senao o pais do ASN informado pelo DShield. A posicao exata dentro do pais e sorteada ao redor do centroide.",
     blocklistNote:
       "Parte dos IPs de origem vem de uma amostra aleatoria das listas por servico do blocklist.de (ssh, mail, apache, ftp, sip, bots). Nesses eventos o tipo de ataque e real (o IP foi reportado atacando aquele servico), mas nao ha contagem de registros nem porta; sao marcados com origin=blocklist.de.",
-    hubs: TARGET_HUBS,
+    targetRankingNote:
+      "Quando presente, targetRanking vem do Cloudflare Radar (ataques DDoS de camada 7 mitigados, ultimas 24 h; share = % do total; pais = pais de cobranca da zona atacada). E dado real, mas de outro universo que o DShield (varreduras contra honeypots) e nao e geografia de servidores. Sem o token, o campo fica null e o painel de paises e ilustrativo.",
+    targetRanking: targetRanking
+      ? { source: "Cloudflare Radar (DDoS camada 7, 24 h)", ...targetRanking }
+      : null,
+    hubs,
     events,
     cves,
     countryRanking,

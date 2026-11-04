@@ -88,11 +88,24 @@
   // origem, pra o arco sempre atravessar o mapa). Sem isso cada IP atacaria
   // sempre o mesmo hub e 19 eventos virariam 19 rotas fixas se repetindo.
   // Os hubs ja sao ilustrativos, entao isso nao altera nenhum dado real.
+  function pickWeighted(pool) {
+    const total = pool.reduce((sum, h) => sum + h.weight, 0);
+    let r = Math.random() * total;
+    for (const h of pool) {
+      r -= h.weight;
+      if (r <= 0) return h;
+    }
+    return pool[pool.length - 1];
+  }
+
   function withRandomDestination(ev) {
     if (!hubList.length) return ev;
-    const candidates = hubList.filter((h) => h.country !== ev.country);
-    const pool = candidates.length ? candidates : hubList;
-    const hub = pool[Math.floor(Math.random() * pool.length)];
+    // Com o ranking do Cloudflare Radar, cada hub tem um peso (a fatia do pais
+    // dividida pelos hubs do pais) e o sorteio e ponderado; sem ele, uniforme.
+    const source = hubWeights.length ? hubWeights : hubList.map((h) => ({ ...h, weight: 1 }));
+    const candidates = source.filter((h) => h.country !== ev.country);
+    const pool = candidates.length ? candidates : source;
+    const hub = pickWeighted(pool);
     return {
       ...ev,
       targetHub: hub.name,
@@ -110,6 +123,7 @@
     const ev = withRandomDestination(baseEvent);
     prependEventToList(ev);
     bumpCountryRanking(ev.targetCountry);
+    updateAttackCounter();
     if (viewMode === "3d") {
       fire3D(ev);
     } else {
@@ -171,10 +185,20 @@
   // Incremento proporcional ao valor atual (0.5%-2%, minimo 1) em vez de
   // sempre +1 -- com os valores iniciais agora na casa dos milhares, um +1
   // fixo seria imperceptivel.
+  // Com o ranking real (Cloudflare Radar) o incremento e um bloco fixo por
+  // disparo -- a fatia de volume correspondente a um ataque na taxa do contador
+  // --, e o que muda a frequencia de cada pais e o sorteio ponderado do destino.
+  // Assim os paises crescem na proporcao dos shares reais e a ordem se mantem
+  // (trocando so entre paises quase empatados). Sem ele, vale o bump
+  // proporcional ao valor atual do comportamento antigo.
+  const AVG_SHOT_INTERVAL_S = 0.45;
+
   function bumpCountryRanking(country) {
     if (!country) return;
     const current = countryTotals.get(country) || 0;
-    const bump = Math.max(1, Math.round(current * (0.005 + Math.random() * 0.015)));
+    const bump = hubWeights.length && counterModel
+      ? Math.max(1, Math.round(counterModel.ratePerSec * AVG_SHOT_INTERVAL_S * (0.5 + Math.random())))
+      : Math.max(1, Math.round(current * (0.005 + Math.random() * 0.015)));
     countryTotals.set(country, current + bump);
     renderCountryRanking(countryRankingArray(), country);
   }
@@ -233,11 +257,59 @@
       </div>`;
   }
 
-  function renderAttackCounter(total) {
-    if (total === null || total === undefined) return;
+  // O acumulado "de hoje" do DShield enche devagar no comeco do dia UTC (de
+  // madrugada e uma fracao do total do dia), entao a base do contador e o total
+  // do DIA ANTERIOR, que ja esta completo. A taxa e esse total dividido pelos
+  // 86400 s do dia, e a cada ataque exibido o contador soma a taxa vezes o
+  // tempo real desde a abertura da pagina. Se o JSON nao trouxer o dia
+  // anterior, cai para o parcial de hoje (taxa = total / tempo decorrido na
+  // coleta). Nao e uma medicao ao vivo: a partida e dado real, o resto e estimativa.
+  const COUNTER_MIN_ELAPSED_S = 600;
+  const DAY_S = 86400;
+  let counterModel = null;
+
+  // Base unica de volume: tambem escala o ranking inicial de paises, para que
+  // os dois paineis falem da mesma ordem de grandeza.
+  function volumeBase(data) {
+    if (data.totalRecordsYesterday) return data.totalRecordsYesterday;
+    return data.totalRecordsToday || 0;
+  }
+
+  function initAttackCounter(data) {
+    const usingYesterday = Boolean(data.totalRecordsYesterday);
+    const base = volumeBase(data);
+    if (!base) return;
+
+    let elapsedS = DAY_S;
+    if (!usingYesterday) {
+      const generatedMs = Date.parse(data.generatedAt) || Date.now();
+      const dayStartMs = data.portsDate
+        ? Date.parse(`${data.portsDate}T00:00:00Z`)
+        : Math.floor(generatedMs / (DAY_S * 1000)) * DAY_S * 1000;
+      elapsedS = Math.min(DAY_S, Math.max(COUNTER_MIN_ELAPSED_S, (generatedMs - dayStartMs) / 1000));
+    }
+    counterModel = { base, ratePerSec: base / elapsedS, startMs: Date.now() };
+
     const el = document.getElementById("attack-counter");
-    document.getElementById("attack-counter-value").textContent = total.toLocaleString("pt-BR");
+    el.querySelector(".attack-counter-label").textContent = usingYesterday
+      ? "registros de ataque · base: dia anterior"
+      : "registros de ataque hoje";
+    el.title = usingYesterday
+      ? `Total do dia anterior (${data.yesterdayDate || "?"}) no DShield, soma das portas mais ` +
+        "reportadas, somado a taxa media daquele dia enquanto os ataques sao exibidos."
+      : "Total parcial do dia no DShield (soma das portas mais reportadas) na hora da " +
+        "coleta, somado a taxa media do dia enquanto os ataques sao exibidos.";
+    updateAttackCounter();
     el.classList.remove("hidden");
+  }
+
+  function updateAttackCounter() {
+    if (!counterModel) return;
+    const { base, ratePerSec, startMs } = counterModel;
+    const sinceOpenS = (Date.now() - startMs) / 1000;
+    document.getElementById("attack-counter-value").textContent = Math.floor(
+      base + ratePerSec * sinceOpenS
+    ).toLocaleString("pt-BR");
   }
 
   function renderUpdateTime(generatedAt) {
@@ -343,6 +415,48 @@
     return map;
   }
 
+  // Ranking real (Cloudflare Radar): a ordem e as proporcoes iniciais seguem os
+  // shares da API. Os valores absolutos sao esses shares aplicados a base de
+  // volume (mesma do contador), so para ficarem na mesma escala; o que e dado
+  // real aqui e a ordem e a proporcao entre os paises.
+  function buildHubWeights(hubs, items) {
+    const shares = new Map(items.map((item) => [item.country, item.share]));
+    const hubsPerCountry = new Map();
+    hubs.forEach((h) => {
+      if (shares.has(h.country)) hubsPerCountry.set(h.country, (hubsPerCountry.get(h.country) || 0) + 1);
+    });
+    return hubs
+      .filter((h) => shares.has(h.country))
+      .map((h) => ({ ...h, weight: shares.get(h.country) / hubsPerCountry.get(h.country) }));
+  }
+
+  function buildTallyFromRanking(items, hubs, base) {
+    const withHub = new Set(hubs.map((h) => h.country));
+    const map = new Map();
+    items
+      .filter((item) => withHub.has(item.country))
+      .forEach((item) => map.set(item.country, Math.max(1, Math.round((item.share / 100) * base))));
+    return map;
+  }
+
+  function initRankingSource(data) {
+    const hint = document.getElementById("ranking-source");
+    const items = data.targetRanking && data.targetRanking.items;
+    hubWeights = items && items.length ? buildHubWeights(hubList, items) : [];
+    if (hubWeights.length) {
+      countryTotals = buildTallyFromRanking(items, hubWeights, volumeBase(data));
+      hint.textContent = "ordem: Cloudflare Radar · DDoS camada 7 · 24 h";
+      hint.title =
+        "Ranking real de paises-alvo de ataques DDoS (camada 7) mitigados pela Cloudflare nas " +
+        "ultimas 24 h. E outro universo que o DShield. Os numeros sao esses percentuais " +
+        "aplicados a base de volume do contador e crescem a cada ataque exibido.";
+    } else {
+      countryTotals = buildInitialCountryTally(hubList, volumeBase(data));
+      hint.textContent = "ordem ilustrativa";
+      hint.title = "Sem ranking real disponivel: destinos e valores sao ilustrativos.";
+    }
+  }
+
   function countryRankingArray() {
     return [...countryTotals.entries()]
       .map(([country, count]) => ({ country, count }))
@@ -400,6 +514,8 @@
   // de cada disparo e sorteado entre eles em tempo de execucao (ver
   // withRandomDestination) em vez de ficar preso ao hub gravado no JSON.
   let hubList = [];
+  // Hubs com peso (so quando ha ranking real); vazio = sorteio uniforme.
+  let hubWeights = [];
 
   function buildHubList(data) {
     // Lista completa gravada pelo script de coleta; o fallback por eventos
@@ -744,10 +860,10 @@
       hubList = buildHubList(data);
       portsHistory = data.portsHistory || null;
       updatedAtEl.textContent = `Fonte: ${data.source}`;
-      renderAttackCounter(data.totalRecordsToday);
+      initAttackCounter(data);
       renderPortList(data.ports || []);
       renderCveList(data.cves || []);
-      countryTotals = buildInitialCountryTally(hubList, data.totalRecordsToday);
+      initRankingSource(data);
       renderCountryRanking(countryRankingArray());
       renderLegend(data.categories || []);
       renderUpdateTime(data.generatedAt);
