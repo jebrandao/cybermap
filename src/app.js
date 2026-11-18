@@ -682,6 +682,17 @@
       .arcDashAnimateTime(ARC_TRAVEL_MS)
       .arcsTransitionDuration(0)
       .arcStroke(0.9)
+      // Ponto na ponta do arco durante a viagem (como o circulo do mapa 2D):
+      // elemento HTML flutuante, reposicionado a cada quadro (ver addArcHead).
+      .htmlElementsData(globeHeads)
+      .htmlLat((d) => d.lat)
+      .htmlLng((d) => d.lng)
+      .htmlAltitude((d) => d.altitude)
+      .htmlElement((d) => d.el)
+      .htmlTransitionDuration(0)
+      .htmlElementVisibilityModifier((el, isVisible) => {
+        el.style.display = isVisible ? "" : "none";
+      })
       .ringsData(globeRings)
       .ringLat((d) => d.lat)
       .ringLng((d) => d.lng)
@@ -706,6 +717,107 @@
     controls.enableZoom = true;
   }
 
+  // --- Ponto na ponta do arco 3D -------------------------------------------
+  // O globe.gl nao expoe a ponta do arco que cresce, entao a curva e recalculada
+  // aqui com a mesma receita da biblioteca (three-globe, camada de arcos):
+  // Bezier cubica da origem ao destino, pontos de controle a 25% e 75% do
+  // grande circulo com altitude 1,5x, onde altitude = distancia angular / 2 x
+  // arcAltitudeAutoScale (0,5 por padrao). A linha e amostrada por comprimento
+  // de arco (TubeGeometry), entao o ponto tambem avanca por comprimento.
+  const GLOBE_ARC_AUTO_SCALE = 0.5;
+  const ARC_TRACK_STEPS = 200;
+  let globeHeads = [];
+  let globeHeadRaf = null;
+
+  function buildArcTrack(arc) {
+    const start = [arc.startLng, arc.startLat];
+    const end = [arc.endLng, arc.endLat];
+    const altitude = (d3.geoDistance(start, end) / 2) * GLOBE_ARC_AUTO_SCALE;
+    const interpolate = d3.geoInterpolate(start, end);
+    const controlAt = (t) => {
+      const [lng, lat] = interpolate(t);
+      return globeInstance.getCoords(lat, lng, altitude * 1.5);
+    };
+    const p0 = globeInstance.getCoords(start[1], start[0], 0);
+    const p1 = controlAt(0.25);
+    const p2 = controlAt(0.75);
+    const p3 = globeInstance.getCoords(end[1], end[0], 0);
+
+    const bezier = (t) => {
+      const u = 1 - t;
+      const w = [u * u * u, 3 * u * u * t, 3 * u * t * t, t * t * t];
+      return {
+        x: w[0] * p0.x + w[1] * p1.x + w[2] * p2.x + w[3] * p3.x,
+        y: w[0] * p0.y + w[1] * p1.y + w[2] * p2.y + w[3] * p3.y,
+        z: w[0] * p0.z + w[1] * p1.z + w[2] * p2.z + w[3] * p3.z,
+      };
+    };
+    const points = [];
+    const lengths = [0];
+    for (let i = 0; i <= ARC_TRACK_STEPS; i++) {
+      points.push(bezier(i / ARC_TRACK_STEPS));
+      if (i > 0) {
+        const a = points[i - 1];
+        const b = points[i];
+        lengths.push(lengths[i - 1] + Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z));
+      }
+    }
+    const total = lengths[ARC_TRACK_STEPS];
+
+    // Posicao (lat, lng, altitude) a uma fracao 0..1 do comprimento do arco.
+    return (fraction) => {
+      const target = Math.min(Math.max(fraction, 0), 1) * total;
+      let i = 1;
+      while (i < ARC_TRACK_STEPS && lengths[i] < target) i++;
+      const seg = lengths[i] - lengths[i - 1] || 1;
+      const k = (target - lengths[i - 1]) / seg;
+      const a = points[i - 1];
+      const b = points[i];
+      return globeInstance.toGeoCoords({
+        x: a.x + (b.x - a.x) * k,
+        y: a.y + (b.y - a.y) * k,
+        z: a.z + (b.z - a.z) * k,
+      });
+    };
+  }
+
+  function stepGlobeHeads() {
+    globeHeadRaf = null;
+    const now = performance.now();
+    globeHeads = globeHeads.filter((head) => {
+      const fraction = (now - head.startedAt) / ARC_TRAVEL_MS;
+      if (fraction >= 1) {
+        head.el.remove();
+        return false;
+      }
+      const pos = head.at(fraction);
+      head.lat = pos.lat;
+      head.lng = pos.lng;
+      head.altitude = pos.altitude;
+      return true;
+    });
+    globeInstance.htmlElementsData([...globeHeads]);
+    if (globeHeads.length) globeHeadRaf = requestAnimationFrame(stepGlobeHeads);
+  }
+
+  function addArcHead(arc, color) {
+    const el = document.createElement("div");
+    el.className = "globe-travel-dot";
+    el.style.background = color;
+    el.style.color = color;
+    const at = buildArcTrack(arc);
+    const start = at(0);
+    globeHeads.push({
+      el,
+      at,
+      startedAt: performance.now(),
+      lat: start.lat,
+      lng: start.lng,
+      altitude: start.altitude,
+    });
+    if (!globeHeadRaf) globeHeadRaf = requestAnimationFrame(stepGlobeHeads);
+  }
+
   // Mesma ideia do fire2D (arco saindo da origem, pulso no impacto), so que
   // usando as propriedades reativas do globe.gl em vez de manipular SVG.
   function fire3D(ev) {
@@ -719,6 +831,7 @@
     };
     globeArcs.push(arc);
     globeInstance.arcsData(globeArcs);
+    addArcHead(arc, color);
 
     const sourceRing = { lat: ev.sourceCoord[1], lng: ev.sourceCoord[0], color };
     globeRings.push(sourceRing);
