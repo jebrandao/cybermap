@@ -30,6 +30,7 @@
   // Tempo que o arco 3D leva da origem ao destino (o impacto acontece nesse
   // instante); o arco some por completo depois de mais um ARC_TRAVEL_MS.
   const ARC_TRAVEL_MS = 1100;
+  const GLOBE_GL_URL = "https://cdn.jsdelivr.net/npm/globe.gl@2.46.2";
   const SOURCE_COLOR = "#33e0ff";
   const IMPACT_COLOR = "#ff2d2d";
 
@@ -598,7 +599,10 @@
   // um Three.js separado causa conflito de instancias multiplas e quebra a lib.
   async function ensureGlobeLibs() {
     if (globeLibsLoaded) return;
-    await loadScript("https://cdn.jsdelivr.net/npm/globe.gl");
+    // Versao fixa de proposito: o ponto na ponta do arco (buildArcTrack) replica
+    // a formula de curva do three-globe desta versao; uma atualizacao
+    // automatica poderia descolar o ponto da linha. Ao subir de versao, revalide.
+    await loadScript(GLOBE_GL_URL);
     globeLibsLoaded = true;
   }
 
@@ -690,9 +694,11 @@
       .htmlAltitude((d) => d.altitude)
       .htmlElement((d) => d.el)
       .htmlTransitionDuration(0)
-      .htmlElementVisibilityModifier((el, isVisible) => {
-        el.style.display = isVisible ? "" : "none";
-      })
+      // O teste de "atras do globo" da propria biblioteca nao escondia estes
+      // elementos (marcas do lado oculto ficavam acesas); a ocultacao e feita
+      // em updateGlobeHtmlOcclusion(), a cada quadro. Modificador vazio so
+      // impede que a biblioteca mexa na visibilidade.
+      .htmlElementVisibilityModifier(() => {})
       .ringsData(globeRings)
       .ringLat((d) => d.lat)
       .ringLng((d) => d.lng)
@@ -726,6 +732,8 @@
   // de arco (TubeGeometry), entao o ponto tambem avanca por comprimento.
   const GLOBE_ARC_AUTO_SCALE = 0.5;
   const ARC_TRACK_STEPS = 200;
+  // Itens HTML flutuantes do globo: "cabecas" de arco (tem `at`, se movem a cada
+  // quadro) e marcas de impacto (fixas, somem sozinhas por CSS/timeout).
   let globeHeads = [];
   let globeHeadRaf = null;
 
@@ -781,10 +789,34 @@
     };
   }
 
+  // Esconde os itens HTML cujo ponto esta atras do globo, vistos da camera:
+  // o segmento camera -> ponto passa por dentro da esfera? Usa `visibility` (e
+  // nao `display`) para nao alterar o layout nem competir com a biblioteca.
+  function updateGlobeHtmlOcclusion() {
+    const cam = globeInstance.camera().position;
+    const radius = globeInstance.getGlobeRadius();
+    globeHeads.forEach((item) => {
+      // Marcas fixas guardam o vetor; as cabecas mudam de lugar a cada quadro.
+      const p = item.at || !item.vec
+        ? globeInstance.getCoords(item.lat, item.lng, item.altitude)
+        : item.vec;
+      if (!item.at) item.vec = p;
+
+      const dx = p.x - cam.x;
+      const dy = p.y - cam.y;
+      const dz = p.z - cam.z;
+      const segLen2 = dx * dx + dy * dy + dz * dz || 1;
+      const t = Math.min(1, Math.max(0, -(cam.x * dx + cam.y * dy + cam.z * dz) / segLen2));
+      const closest = Math.hypot(cam.x + t * dx, cam.y + t * dy, cam.z + t * dz);
+      item.el.style.visibility = closest < radius * 0.999 ? "hidden" : "";
+    });
+  }
+
   function stepGlobeHeads() {
     globeHeadRaf = null;
     const now = performance.now();
     globeHeads = globeHeads.filter((head) => {
+      if (!head.at) return true; // marca de impacto: nao se move
       const fraction = (now - head.startedAt) / ARC_TRAVEL_MS;
       if (fraction >= 1) {
         head.el.remove();
@@ -797,6 +829,8 @@
       return true;
     });
     globeInstance.htmlElementsData([...globeHeads]);
+    updateGlobeHtmlOcclusion();
+    // O laco roda enquanto houver itens HTML: a camera gira e a oclusao muda.
     if (globeHeads.length) globeHeadRaf = requestAnimationFrame(stepGlobeHeads);
   }
 
@@ -818,6 +852,30 @@
     if (!globeHeadRaf) globeHeadRaf = requestAnimationFrame(stepGlobeHeads);
   }
 
+  // Marca no ponto de partida (azul) ou de chegada (vermelha): circulo HTML
+  // com brilho (como os pontos do mapa 2D), que esmaece em FADE_MS. O ponto
+  // nativo do globo (addGlobePoint) fica so para a dica ao passar o mouse --
+  // sozinho ele tinha 1-2 px e na chegada era coberto pela ponta grossa do arco.
+  function addGlobeMarker(coord, variantClass) {
+    const el = document.createElement("div");
+    el.className = `globe-marker ${variantClass}`;
+    el.style.animationDuration = `${FADE_MS}ms`;
+    globeHeads.push({
+      el,
+      lat: coord[1],
+      lng: coord[0],
+      altitude: 0.012,
+    });
+    globeInstance.htmlElementsData([...globeHeads]);
+    updateGlobeHtmlOcclusion();
+    if (!globeHeadRaf) globeHeadRaf = requestAnimationFrame(stepGlobeHeads);
+    setTimeout(() => {
+      el.remove();
+      globeHeads = globeHeads.filter((h) => h.el !== el);
+      globeInstance.htmlElementsData([...globeHeads]);
+    }, FADE_MS);
+  }
+
   // Mesma ideia do fire2D (arco saindo da origem, pulso no impacto), so que
   // usando as propriedades reativas do globe.gl em vez de manipular SVG.
   function fire3D(ev) {
@@ -837,12 +895,14 @@
     globeRings.push(sourceRing);
     globeInstance.ringsData(globeRings);
     addGlobePoint(ev.sourceCoord, SOURCE_COLOR, eventTooltipHtml(ev));
+    addGlobeMarker(ev.sourceCoord, "globe-source-dot");
 
     setTimeout(() => {
       const targetRing = { lat: ev.targetCoord[1], lng: ev.targetCoord[0], color: IMPACT_COLOR };
       globeRings.push(targetRing);
       globeInstance.ringsData(globeRings);
       addGlobePoint(ev.targetCoord, IMPACT_COLOR, countryName(ev.targetCountry));
+      addGlobeMarker(ev.targetCoord, "globe-impact-dot");
 
       setTimeout(() => {
         globeRings = globeRings.filter((r) => r !== targetRing);

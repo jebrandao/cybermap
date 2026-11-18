@@ -227,6 +227,25 @@ html, body {
   box-shadow: 0 0 6px 1px currentColor;
 }
 
+/* Marcas de origem (azul) e impacto (vermelha) no globo 3D, equivalentes ao
+   .source-dot e .impact-dot do 2D: acendem e somem em 5 s. */
+.globe-marker {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  pointer-events: none;
+  box-shadow: 0 0 6px 1px currentColor;
+  animation-name: globe-marker-fade;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+.globe-source-dot { background: var(--accent); color: var(--accent); }
+.globe-impact-dot { background: #ff2d2d; color: #ff2d2d; }
+@keyframes globe-marker-fade {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
 .impact-dot {
   fill: #ff2d2d;
   filter: drop-shadow(0 0 3px #ff2d2d);
