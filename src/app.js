@@ -27,6 +27,9 @@
   // Tempo que os pontos de origem (azuis) e de impacto (vermelhos) levam
   // para esmaecer ate sumir depois de acesos.
   const FADE_MS = 5000;
+  // Tempo que o arco 3D leva da origem ao destino (o impacto acontece nesse
+  // instante); o arco some por completo depois de mais um ARC_TRAVEL_MS.
+  const ARC_TRAVEL_MS = 1100;
   const SOURCE_COLOR = "#33e0ff";
   const IMPACT_COLOR = "#ff2d2d";
 
@@ -668,10 +671,17 @@
       .arcEndLat((d) => d.endLat)
       .arcEndLng((d) => d.endLng)
       .arcColor((d) => d.color)
-      .arcDashLength(0.4)
-      .arcDashGap(0.2)
-      .arcDashAnimateTime(1100)
-      .arcStroke(0.5)
+      // Linha continua (sem tracejado): o "traco" ocupa o arco inteiro e o vao
+      // inicial o esconde, entao a linha cresce da origem ate o destino em
+      // ARC_TRAVEL_MS e depois a cauda a apaga (ciclo total = 2 x ARC_TRAVEL_MS;
+      // o arco e removido ao fim dele, antes de repetir). Sem transicao de
+      // entrada/saida do globe.gl, que deformava o arco recem-criado.
+      .arcDashLength(1)
+      .arcDashGap(1)
+      .arcDashInitialGap(1)
+      .arcDashAnimateTime(ARC_TRAVEL_MS)
+      .arcsTransitionDuration(0)
+      .arcStroke(0.9)
       .ringsData(globeRings)
       .ringLat((d) => d.lat)
       .ringLng((d) => d.lng)
@@ -689,8 +699,7 @@
     resizeGlobe();
     window.addEventListener("resize", resizeGlobe);
 
-    globeFadeTimer = setInterval(tickGlobePoints, 100);
-    globeInstance.pointOfView({ lat: 20, lng: 0, altitude: 2.2 }, 0);
+    globeFadeTimer = setInterval(tickGlobePoints, 100);    globeInstance.pointOfView({ lat: 20, lng: 0, altitude: 2.2 }, 0);
     const controls = globeInstance.controls();
     controls.autoRotate = true;
     controls.autoRotateSpeed = 0.4;
@@ -722,14 +731,16 @@
       globeInstance.ringsData(globeRings);
       addGlobePoint(ev.targetCoord, IMPACT_COLOR, countryName(ev.targetCountry));
 
-      globeArcs = globeArcs.filter((a) => a !== arc);
-      globeInstance.arcsData(globeArcs);
-
       setTimeout(() => {
         globeRings = globeRings.filter((r) => r !== targetRing);
         globeInstance.ringsData(globeRings);
       }, 1200);
-    }, 1100);
+    }, ARC_TRAVEL_MS);
+
+    setTimeout(() => {
+      globeArcs = globeArcs.filter((a) => a !== arc);
+      globeInstance.arcsData(globeArcs);
+    }, ARC_TRAVEL_MS * 2);
 
     setTimeout(() => {
       globeRings = globeRings.filter((r) => r !== sourceRing);
