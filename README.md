@@ -1,12 +1,12 @@
 # CyberMap
 
-Mapa 2D de ataques cibernéticos, inspirado no [Kaspersky Cyberthreat Map](https://cybermap.kaspersky.com/), construído para rodar 100% estático no GitHub Pages.
+Mapa de ataques cibernéticos, inspirado no [Kaspersky Cyberthreat Map](https://cybermap.kaspersky.com/).
 
 ## Como funciona
 
 - **Fonte de dados**: [DShield / SANS Internet Storm Center](https://isc.sans.edu/api/) — API pública, sem chave, com dados agregados de scans/ataques reportados por uma rede voluntária de sensores.
 - **Coleta**: `scripts/fetch-dshield.mjs` roda via GitHub Actions (`.github/workflows/update-data.yml`), busca as top portas e IPs atacantes, resolve o país de cada IP e grava tudo em `data/attacks.json`.
-- **Disparo**: o `schedule` (cron) nativo do GitHub Actions é "melhor esforço" — em repositórios com pouco tráfego costuma atrasar bastante (na prática, tem rodado a cada 3-7h em vez de 15 min). É uma limitação conhecida do GitHub, sem solução gratuita que não dependa de um serviço externo. Existe uma opção de disparo externo mais preciso documentada abaixo, caso queiram uma cadência mais confiável no futuro.
+- **Disparo**: o `schedule` (cron) nativo do GitHub Actions é "melhor esforço" — em repositórios com pouco tráfego costuma atrasar bastante. É uma limitação conhecida do GitHub, sem solução gratuita que não dependa de um serviço externo. Existe uma opção de disparo externo mais preciso documentada abaixo, caso queiram uma cadência mais confiável no futuro.
 - **Visualização**: `src/app.js` usa D3.js para desenhar um mapa-múndi (`data/world-110m.json`) e animar arcos entre o país de origem e pontos de destino estilizados.
 
 ## Limitações importantes (leia antes de divulgar como "tempo real")
@@ -34,7 +34,7 @@ Com isso o projeto já funciona: o cron nativo do GitHub atualiza os dados perio
 
 ## Opcional: disparo externo mais preciso a cada 15 min (cron-job.org)
 
-Se no futuro quiser uma cadência mais próxima de 15 min de verdade (em vez do "melhor esforço" do GitHub), dá pra usar um serviço externo gratuito que chama a API do GitHub (`workflow_dispatch`) num horário real, disparando o mesmo workflow (já habilitado em `update-data.yml`). Não configuramos isso por padrão pois exige criar e gerenciar um token de acesso — um passo manual que só o dono do repositório deve fazer.
+Se no futuro quiser uma cadência mais próxima de 15 min de verdade (em vez do "melhor esforço" do GitHub), dá pra usar um serviço externo gratuito que chama a API do GitHub (`workflow_dispatch`) num horário real, disparando o mesmo workflow (já habilitado em `update-data.yml`).
 
 **1. Crie um token de acesso restrito a este repositório** (faça você mesmo — nunca compartilhe esse token com ninguém, nem cole em outro lugar):
    - Acesse [github.com/settings/personal-access-tokens/new](https://github.com/settings/personal-access-tokens/new)
