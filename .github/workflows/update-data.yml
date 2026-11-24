@@ -8,9 +8,19 @@ on:
 permissions:
   contents: write
 
+# Uma coleta por vez: o disparo externo (cron-job.org) e o agendamento nativo
+# do GitHub podem coincidir, e duas execucoes disputariam o push. Sem
+# cancelar a em andamento; o GitHub mantem no maximo uma pendente.
+concurrency:
+  group: update-data
+  cancel-in-progress: false
+
 jobs:
   fetch:
     runs-on: ubuntu-latest
+    # Teto de seguranca: com esperas de 5 min apos 429 do DShield, uma execucao
+    # normal (~1 min) nunca chega perto disso.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 

@@ -52,9 +52,17 @@ Se no futuro quiser uma cadência mais próxima de 15 min de verdade (em vez do 
      - `Authorization: Bearer SEU_TOKEN_AQUI`
      - `Accept: application/vnd.github+json`
      - `Content-Type: application/json`
+     - `X-GitHub-Api-Version: 2022-11-28`
    - **Body**: `{"ref":"main"}`
+   - O GitHub responde `204 No Content` quando o disparo funciona (`401`/`403` = token ou permissão errados; `404` = URL ou nome do workflow errados).
 
 Pronto — a partir daí o cron-job.org bate na API do GitHub no horário certo, e o workflow roda de forma confiável a cada 15 minutos.
+
+**Observações de operação**
+- O workflow usa `concurrency` (uma coleta por vez, sem cancelar a em andamento): se o disparo externo e o agendamento nativo do GitHub coincidirem, a segunda execução espera a primeira.
+- O DShield não tem limite estrito, mas pede para parar 5 minutos ao receber `429` ([regras de uso da API](https://isc.sans.edu/api/)). O script já espera pelo menos 5 minutos (ou o `Retry-After`, se for maior) após um `429` do DShield; ajustável com `DSHIELD_429_WAIT_S`. Se os logs mostrarem `429` com frequência, aumente o intervalo do cron-job.org para 30 minutos.
+- O token do GitHub expira (a data foi escolhida ao criá-lo). Ao vencer, o cron-job.org passa a receber `401`: gere outro e atualize o header `Authorization` do cronjob.
+- Licença dos dados do DShield: CC BY-NC-SA 4.0 (uso não comercial, com atribuição; a fonte já aparece no cabeçalho do site).
 
 ## Rodando localmente
 

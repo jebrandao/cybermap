@@ -34,6 +34,7 @@ const TOTAL_PORTS_SAMPLE = Number(process.env.TOTAL_PORTS_SAMPLE || 50);
 const CVE_LIMIT = Number(process.env.CVE_LIMIT || 8);
 const TARGET_RANKING_LIMIT = Number(process.env.TARGET_RANKING_LIMIT || 30);
 const REQUEST_DELAY_MS = 400;
+const DSHIELD_429_WAIT_S = Number(process.env.DSHIELD_429_WAIT_S || 300);
 
 const SEVERITY_COLORS = {
   CRITICAL: "#ff3366",
@@ -112,9 +113,14 @@ async function fetchJSON(url, { retries = 2 } = {}) {
       headers: { "User-Agent": USER_AGENT, Accept: "application/json" },
     });
     if (res.status === 429) {
-      const retryAfter = Number(res.headers.get("retry-after")) || 30;
-      console.warn(`429 recebido, aguardando ${retryAfter}s...`);
-      await sleep(retryAfter * 1000);
+      // O DShield pede para parar 5 minutos ao receber 429 (e respeitar o
+      // Retry-After, se vier); para os demais servicos (ex.: NVD) basta o
+      // Retry-After ou 30 s.
+      const retryAfter = Number(res.headers.get("retry-after")) || 0;
+      const minimum = url.includes("isc.sans.edu") ? DSHIELD_429_WAIT_S : 30;
+      const waitS = Math.max(retryAfter, minimum);
+      console.warn(`429 recebido de ${new URL(url).host}, aguardando ${waitS}s...`);
+      await sleep(waitS * 1000);
       continue;
     }
     if (!res.ok) {
